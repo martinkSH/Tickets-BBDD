@@ -10,41 +10,33 @@ export default function DashboardPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [responsables, setResponsables] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [noAuth, setNoAuth] = useState(false)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    const load = async (userId: string) => {
-      const { data: p } = await supabase.from('perfiles').select('*').eq('id', userId).single()
-      if (!p) { setNoAuth(true); return }
+    const load = async () => {
+      // Esperar sesión activa
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { window.location.href = '/login'; return }
+
+      const { data: p } = await supabase.from('perfiles').select('*').eq('id', session.user.id).single()
+      if (!p) { window.location.href = '/login'; return }
       setPerfil(p)
+
       const { data: t } = await supabase
         .from('tickets_con_responsable').select('*').order('created_at', { ascending: false })
       setTickets(t || [])
+
       const { data: r } = await supabase.from('perfiles').select('id, nombre, mail').eq('activo', true).order('nombre')
       setResponsables(r || [])
-      setLoading(false)
+      setReady(true)
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        load(session.user.id)
-      } else {
-        setNoAuth(true)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    load()
   }, [])
 
-  if (noAuth) {
-    if (typeof window !== 'undefined') window.location.href = '/login'
-    return null
-  }
-
-  if (loading || !perfil) return (
+  if (!ready || !perfil) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f5f9' }}>
       <div className="text-gray-400 text-sm">Cargando…</div>
     </div>
