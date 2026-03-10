@@ -57,8 +57,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade-up">
-
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col fade-up">
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div>
