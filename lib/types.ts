@@ -1,5 +1,11 @@
 export type Rol = 'admin' | 'responsable'
-export type Estado = 'Recibido' | 'Asignado' | 'Resuelto'
+export type Estado =
+  | 'Recibido'
+  | 'Asignado'
+  | 'Pendiente Operador'
+  | 'Pendiente Ventas'
+  | 'Resuelto'
+
 export type AreaAfectada = 'Tarifas' | 'Base de Datos' | 'Otro'
 
 export interface Perfil {
@@ -33,74 +39,51 @@ export interface Ticket {
   estado: Estado
   assigned_at?: string
   fecha_resolucion?: string
-  // join
   responsable_nombre?: string
   responsable_mail?: string
 }
 
+export const ESTADOS_PAUSA: Estado[] = ['Pendiente Operador', 'Pendiente Ventas']
+
+export const ESTADOS_ORDEN: Estado[] = [
+  'Recibido', 'Asignado', 'Pendiente Operador', 'Pendiente Ventas', 'Resuelto',
+]
+
 export const ESTADO_CONFIG: Record<Estado, {
-  label: string; bg: string; text: string; border: string; dot: string; next?: Estado
+  label: string; color: string; bg: string; border: string; dot: string; pausa: boolean
 }> = {
-  Recibido: {
-    label: 'Recibido',
-    bg: 'bg-slate-100', text: 'text-slate-700',
-    border: 'border-slate-300', dot: 'bg-slate-400',
-    next: 'Asignado',
-  },
-  Asignado: {
-    label: 'Asignado',
-    bg: 'bg-amber-50', text: 'text-amber-800',
-    border: 'border-amber-300', dot: 'bg-amber-500',
-    next: 'Resuelto',
-  },
-  Resuelto: {
-    label: 'Resuelto',
-    bg: 'bg-emerald-50', text: 'text-emerald-800',
-    border: 'border-emerald-300', dot: 'bg-emerald-500',
-  },
+  'Recibido':          { label: 'Recibido',       color: 'text-slate-600',  bg: 'bg-slate-100',  border: 'border-slate-200',  dot: 'bg-slate-400',  pausa: false },
+  'Asignado':          { label: 'Asignado',        color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-200',  dot: 'bg-amber-400',  pausa: false },
+  'Pendiente Operador':{ label: 'Pend. Operador',  color: 'text-orange-700', bg: 'bg-orange-50',  border: 'border-orange-200', dot: 'bg-orange-400', pausa: true  },
+  'Pendiente Ventas':  { label: 'Pend. Ventas',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', dot: 'bg-purple-400', pausa: true  },
+  'Resuelto':          { label: 'Resuelto',        color: 'text-emerald-700',bg: 'bg-emerald-50', border: 'border-emerald-200',dot: 'bg-emerald-500',pausa: false },
 }
 
 export const AREA_CONFIG: Record<string, { badge: string; short: string }> = {
-  'Tarifas':       { badge: 'bg-violet-100 text-violet-800', short: 'TF' },
-  'Base de Datos': { badge: 'bg-blue-100 text-blue-800',     short: 'BD' },
+  'Tarifas':       { badge: 'bg-violet-100 text-violet-700', short: 'TF' },
+  'Base de Datos': { badge: 'bg-sky-100 text-sky-700',       short: 'BD' },
   'Otro':          { badge: 'bg-gray-100 text-gray-600',     short: 'OT' },
 }
 
 export const MOTIVOS_TARIFAS = [
-  'Carga de nueva tarifa en IT o TP',
-  'Modificación de tarifa existente',
-  'Eliminación de tarifa',
-  'Consulta de tarifa',
-  'Otros',
+  'Carga de nueva tarifa en IT o TP','Modificación de tarifa existente',
+  'Eliminación de tarifa','Consulta de tarifa','Otros',
 ]
 
 export const MOTIVOS_BD = [
-  'Alta de nuevos servicios',
-  'Modificación de servicios existentes',
-  'Información de servicios incompleta',
-  'Baja de servicios',
-  'Otros',
+  'Alta de nuevos servicios','Modificación de servicios existentes',
+  'Información de servicios incompleta','Baja de servicios','Otros',
 ]
 
 export const TIPOS_TICKET = [
-  'Error del Usuario',
-  'Pedido de Alta Tarifa',
-  'Pedido de Alta Operador / Cliente',
-  'Error del Área',
-  'Error del Sistema',
-  'Pedido de Alta SVC/HTL',
-  'Consulta',
-  'Pedido de Alta Paquete',
-  'Actualización de Descriptivos',
+  'Error del Usuario','Pedido de Alta Tarifa','Pedido de Alta Operador / Cliente',
+  'Error del Área','Error del Sistema','Pedido de Alta SVC/HTL',
+  'Consulta','Pedido de Alta Paquete','Actualización de Descriptivos',
 ] as const
 
-export function buildResumen(proveedor?: string, ciudad?: string, tipo?: string, fechas?: string) {
-  return [
-    proveedor && `Proveedor: ${proveedor}`,
-    ciudad    && `Ciudad: ${ciudad}`,
-    tipo      && `Tipo: ${tipo}`,
-    fechas    && `Fechas: ${fechas}`,
-  ].filter(Boolean).join(' / ')
+export function buildResumen(p?: string, c?: string, t?: string, f?: string) {
+  return [p && `Prov: ${p}`, c && `Ciudad: ${c}`, t && `Tipo: ${t}`, f && `Fechas: ${f}`]
+    .filter(Boolean).join(' · ')
 }
 
 export function formatFecha(iso?: string | null) {

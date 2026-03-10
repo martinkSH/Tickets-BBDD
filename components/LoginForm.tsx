@@ -2,93 +2,77 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function LoginForm() {
-  const router = useRouter()
   const [mail, setMail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
-  const supabase = createClient()
-  const { data, error } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
-  if (error) {
-    setError('Mail o contraseña incorrectos')
-    setLoading(false)
-    return
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const supabase = createClient()
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
+    if (authError || !data.user) {
+      setError('Mail o contraseña incorrectos')
+      setLoading(false)
+      return
+    }
+    const { data: perfil } = await supabase
+      .from('perfiles').select('rol').eq('id', data.user.id).single()
+    window.location.href = '/dashboard'
   }
-  // Buscar rol directamente desde el cliente
-  const { data: perfil } = await supabase
-    .from('perfiles')
-    .select('rol')
-    .eq('id', data.user.id)
-    .single()
 
-  if (perfil?.rol === 'admin') {
-    window.location.href = '/admin'
-  } else {
-    window.location.href = '/tablero'
-  }
-}
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-950 to-brand-800 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'var(--sidebar-bg)', fontFamily: 'var(--font)' }}>
+
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+            style={{ background: 'var(--accent)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">Tickets</h1>
-          <p className="text-brand-300 text-sm mt-1">Base de Datos & Tarifas</p>
+          <h1 className="text-white text-xl font-semibold">Tickets</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--sidebar-text)', fontFamily: 'var(--font-mono)' }}>BBDD & Tarifas</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-lg font-semibold text-slate-800 mb-6">Iniciar sesión</h2>
+        <div className="rounded-2xl p-7" style={{ background: '#161b27', border: '1px solid var(--sidebar-border)' }}>
+          <h2 className="text-white font-semibold text-lg mb-6">Iniciar sesión</h2>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Mail</label>
-              <input
-                type="email" required
-                value={mail} onChange={e => setMail(e.target.value)}
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--sidebar-text)' }}>Mail</label>
+              <input type="email" value={mail} onChange={e => setMail(e.target.value)} required
                 placeholder="nombre@sayhueque.com"
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none"
+                style={{ background: '#0f1117', border: '1px solid var(--sidebar-border)' }}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Contraseña</label>
-              <input
-                type="password" required
-                value={pass} onChange={e => setPass(e.target.value)}
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--sidebar-text)' }}>Contraseña</label>
+              <input type="password" value={pass} onChange={e => setPass(e.target.value)} required
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full px-3 py-2.5 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none"
+                style={{ background: '#0f1117', border: '1px solid var(--sidebar-border)' }}
               />
             </div>
-
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-            )}
-
-            <button
-              type="submit" disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 disabled:opacity-50 transition-colors mt-2"
-            >
-              {loading ? 'Ingresando...' : 'Ingresar'}
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+            <button type="submit" disabled={loading}
+              className="w-full py-2.5 rounded-lg text-white text-sm font-semibold transition-all disabled:opacity-60 mt-2"
+              style={{ background: 'var(--accent)' }}>
+              {loading ? 'Ingresando…' : 'Ingresar'}
             </button>
           </form>
+          <p className="text-center text-xs mt-5" style={{ color: 'var(--sidebar-text)' }}>
+            ¿Problemas para ingresar? Contactá a Martin
+          </p>
         </div>
-
-        <p className="text-center text-brand-300 text-xs mt-6">
-          ¿Problemas para ingresar? Contactá a Lupe.
-        </p>
       </div>
     </div>
   )
