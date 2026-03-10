@@ -33,6 +33,8 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   const [areaFiltro, setAreaFiltro] = useState<string>('Todas')
   const [busqueda, setBusqueda] = useState('')
   const [selected, setSelected] = useState<Ticket | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const totalPages = Math.ceil(totalCount / pageSize)
   const basePath = soloMios ? '/mis-tickets' : '/dashboard'
@@ -78,6 +80,21 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
 
   const goToPage = (p: number) => {
     router.push(`${basePath}?page=${p}`)
+  }
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('¿Eliminar este ticket? Esta acción no se puede deshacer.')) return
+    setDeleteLoading(true)
+    setDeleteId(id)
+    await fetch('/api/tickets/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setDeleteId(null)
+    setDeleteLoading(false)
+    router.refresh()
   }
 
   return (
@@ -163,7 +180,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Nro', 'Estado', 'Área', 'Solicitante', 'Proveedor', 'Responsable', 'Fecha'].map(h => (
+                {['Nro', 'Estado', 'Área', 'Solicitante', 'Proveedor', 'Responsable', 'Fecha', ''].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -183,6 +200,9 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                         <span className={cx('w-1.5 h-1.5 rounded-full shrink-0', cfg.dot)} />
                         {cfg.label}
                       </span>
+                      {t.estado === 'Resuelto' && t.tipo_ticket && (
+                        <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>{t.tipo_ticket}</p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>{t.area_afectada}</span>
@@ -201,6 +221,18 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                         : <span className="text-gray-300 text-xs">Sin asignar</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{formatFecha(t.created_at)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={e => handleDelete(t.id, e)}
+                        disabled={deleteId === t.id}
+                        title="Eliminar ticket"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', padding: '4px', borderRadius: 6, lineHeight: 1 }}
+                        className="hover:text-red-400 transition-colors">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
