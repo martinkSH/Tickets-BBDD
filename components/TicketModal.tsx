@@ -67,7 +67,8 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-8 flex flex-col fade-up"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-4 flex flex-col fade-up"
+        style={{ height: 'calc(100vh - 32px)' }}
         style={{ minHeight: 'min(800px, calc(100vh - 64px))' }}
         onClick={e => e.stopPropagation()}
       >
@@ -95,7 +96,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Solicitante" value={ticket.mail_solicitante} />
