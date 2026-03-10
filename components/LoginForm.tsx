@@ -10,19 +10,20 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    const supabase = createClient()
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
-    if (authError || !data.user) {
-      setError('Mail o contraseña incorrectos')
-      setLoading(false)
-      return
-    }
-    const { data: perfil } = await supabase
-      .from('perfiles').select('rol').eq('id', data.user.id).single()
-    window.location.href = '/dashboard'
+  e.preventDefault()
+  setError('')
+  setLoading(true)
+  const supabase = createClient()
+  const { error: authError } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
+  if (authError) {
+    setError('Mail o contraseña incorrectos')
+    setLoading(false)
+    return
+  }
+  // Esperar un tick para que las cookies se propaguen
+  await new Promise(r => setTimeout(r, 500))
+  window.location.href = '/dashboard'
+}ndow.location.href = '/dashboard'
   }
 
   return (
