@@ -4,8 +4,6 @@ import type { Estado } from '@/lib/types'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-// Temporalmente permitir sin auth check hasta fix de cookies
 
   const body = await req.json()
   const { responsable_id, estado, comentario, tipo_ticket } = body as {
@@ -26,8 +24,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       updates.fecha_resolucion = new Date().toISOString()
       if (comentario) updates.comentario_solucion = comentario
       if (tipo_ticket) updates.tipo_ticket = tipo_ticket
-    } else if (estado === 'Asignado' && comentario) {
-      updates.comentario_asignacion = comentario
     } else if (comentario) {
       updates.comentario_asignacion = comentario
     }
