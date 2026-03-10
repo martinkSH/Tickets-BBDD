@@ -69,10 +69,8 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-4 flex flex-col fade-up"
         style={{ height: 'calc(100vh - 32px)' }}
-        style={{ minHeight: 'min(800px, calc(100vh - 64px))' }}
         onClick={e => e.stopPropagation()}
       >
-
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
           <div>
@@ -95,9 +93,8 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body scrolleable */}
         <div className="p-6 space-y-5 flex-1 overflow-y-auto">
-
           <div className="grid grid-cols-2 gap-4">
             <Field label="Solicitante" value={ticket.mail_solicitante} />
             {ticket.proveedor && <Field label="Proveedor" value={ticket.proveedor} />}
