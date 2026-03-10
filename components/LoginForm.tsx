@@ -11,21 +11,30 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
-    if (error) {
-      setError('Mail o contraseña incorrectos')
-      setLoading(false)
-      return
-    }
-    router.push('/')
-    router.refresh()
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setError('')
+  setLoading(true)
+  const supabase = createClient()
+  const { data, error } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
+  if (error) {
+    setError('Mail o contraseña incorrectos')
+    setLoading(false)
+    return
   }
+  // Buscar rol directamente desde el cliente
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('rol')
+    .eq('id', data.user.id)
+    .single()
 
+  if (perfil?.rol === 'admin') {
+    window.location.href = '/admin'
+  } else {
+    window.location.href = '/tablero'
+  }
+}
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-950 to-brand-800 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
