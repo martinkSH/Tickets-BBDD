@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Ticket, Perfil, Estado } from '@/lib/types'
 import { ESTADO_CONFIG, ESTADOS_ORDEN, AREA_CONFIG, TIPOS_TICKET, formatFecha, cx } from '@/lib/types'
 
@@ -19,6 +19,13 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   const [comentario, setComentario] = useState('')
   const [tipoTicket, setTipoTicket] = useState(ticket.tipo_ticket || '')
   const [error, setError] = useState('')
+
+  // Auto-cambiar a Asignado cuando se elige responsable
+  useEffect(() => {
+    if (responsableId && responsableId !== ticket.responsable_id) {
+      if (estado === 'Recibido') setEstado('Asignado')
+    }
+  }, [responsableId])
 
   const cfg = ESTADO_CONFIG[estado]
   const areaCfg = AREA_CONFIG[ticket.area_afectada] || AREA_CONFIG['Otro']
@@ -56,10 +63,14 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col fade-up">
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col fade-up"
+        style={{ maxHeight: 'calc(100vh - 48px)' }}>
+
+        {/* Header fijo */}
+        <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <span className="font-mono text-sm font-semibold text-gray-500">{ticket.numero}</span>
@@ -73,15 +84,15 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
             </div>
             <p className="text-gray-400 text-xs">{formatFecha(ticket.created_at)}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-5 overflow-y-auto flex-1">
+        {/* Body scrolleable */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
           {/* Info del solicitante */}
           <div className="grid grid-cols-2 gap-4">
@@ -94,7 +105,6 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
             {ticket.motivo_bd && <Field label="Motivo BBDD" value={ticket.motivo_bd} />}
           </div>
 
-          {/* Descripción */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Descripción</p>
             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-relaxed">{ticket.descripcion}</p>
@@ -117,11 +127,11 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
           <hr className="border-gray-100" />
 
-          {/* Edición */}
+          {/* Gestión */}
           <div className="space-y-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestión del ticket</p>
 
-            {/* Asignar responsable */}
+            {/* Responsable — auto-cambia estado a Asignado */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Responsable</label>
               <select value={responsableId} onChange={e => setResponsableId(e.target.value)}
@@ -131,6 +141,11 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                   <option key={r.id} value={r.id}>{r.nombre} — {r.mail}</option>
                 ))}
               </select>
+              {responsableId && responsableId !== ticket.responsable_id && estado === 'Asignado' && (
+                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                  ✓ Se cambiará automáticamente a Asignado y se notificará por mail
+                </p>
+              )}
             </div>
 
             {/* Estado */}
@@ -146,54 +161,62 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                       )}>
                       <span className={cx('w-1.5 h-1.5 rounded-full', c.dot)} />
                       {c.label}
-                      {c.pausa && <span className="text-xs">⏸</span>}
+                      {c.pausa && <span>⏸</span>}
                     </button>
                   )
                 })}
               </div>
               {ESTADO_CONFIG[estado]?.pausa && (
-                <p className="text-xs text-orange-600 mt-1.5 flex items-center gap-1">
-                  ⏸ Este estado pausa el tiempo de resolución
-                </p>
+                <p className="text-xs text-orange-600 mt-1.5">⏸ Este estado pausa el tiempo de resolución</p>
               )}
             </div>
 
-            {/* Tipo ticket (requerido si Resuelto) */}
+            {/* Tipo ticket + comentario resolución (solo si Resuelto) */}
             {estado === 'Resuelto' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Tipo de ticket <span className="text-red-400">*</span>
-                </label>
-                <select value={tipoTicket} onChange={e => setTipoTicket(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50">
-                  <option value="">Seleccioná el tipo…</option>
-                  {TIPOS_TICKET.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Tipo de ticket <span className="text-red-400">*</span>
+                  </label>
+                  <select value={tipoTicket} onChange={e => setTipoTicket(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50">
+                    <option value="">Seleccioná el tipo…</option>
+                    {TIPOS_TICKET.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Comentario de resolución <span className="text-gray-400 font-normal">(se envía al solicitante)</span>
+                  </label>
+                  <textarea value={comentario} onChange={e => setComentario(e.target.value)}
+                    rows={3}
+                    placeholder="Describí cómo se resolvió el ticket…"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
+                  />
+                </div>
+              </>
             )}
 
-            {/* Comentario */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Comentario {estado === 'Resuelto' ? 'de resolución' : '(opcional)'}
-              </label>
-              <textarea value={comentario} onChange={e => setComentario(e.target.value)}
-                rows={3}
-                placeholder={estado === 'Resuelto' ? 'Describí cómo se resolvió…' : 'Notas adicionales…'}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
-              />
-            </div>
+            {/* Comentario general (solo si NO es Resuelto) */}
+            {estado !== 'Resuelto' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Comentario (opcional)</label>
+                <textarea value={comentario} onChange={e => setComentario(e.target.value)}
+                  rows={2}
+                  placeholder="Notas adicionales…"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
+                />
+              </div>
+            )}
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-600">{error}</div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
+        {/* Footer fijo */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
             Cancelar
           </button>
