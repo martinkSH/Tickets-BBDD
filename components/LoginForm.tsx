@@ -10,28 +10,24 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
-  const supabase = createClient()
-  const { error: authError } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
-  if (authError) {
-    setError('Mail o contraseña incorrectos')
-    setLoading(false)
-    return
-  }
-  // Esperar un tick para que las cookies se propaguen
-  await new Promise(r => setTimeout(r, 500))
-  window.location.href = '/dashboard'
-}ndow.location.href = '/dashboard'
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signInWithPassword({ email: mail, password: pass })
+    if (authError) {
+      setError('Mail o contraseña incorrectos')
+      setLoading(false)
+      return
+    }
+    await new Promise(r => setTimeout(r, 500))
+    window.location.href = '/dashboard'
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
       style={{ background: 'var(--sidebar-bg)', fontFamily: 'var(--font)' }}>
-
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
             style={{ background: 'var(--accent)' }}>
@@ -42,8 +38,6 @@ export default function LoginForm() {
           <h1 className="text-white text-xl font-semibold">Tickets</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--sidebar-text)', fontFamily: 'var(--font-mono)' }}>BBDD & Tarifas</p>
         </div>
-
-        {/* Card */}
         <div className="rounded-2xl p-7" style={{ background: '#161b27', border: '1px solid var(--sidebar-border)' }}>
           <h2 className="text-white font-semibold text-lg mb-6">Iniciar sesión</h2>
           <form onSubmit={handleLogin} className="space-y-4">
