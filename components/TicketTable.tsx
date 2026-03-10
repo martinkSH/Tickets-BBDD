@@ -17,6 +17,14 @@ interface Props {
 const ESTADOS_FILTRO = ['Todos', ...ESTADOS_ORDEN] as const
 const AREAS_FILTRO = ['Todas', 'Tarifas', 'Base de Datos', 'Otro'] as const
 
+const AVATAR_COLORS = [
+  '#4f6ef7','#7c3aed','#0891b2','#059669','#d97706','#dc2626','#db2777','#65a30d'
+]
+function avatarColor(name: string) {
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length
+  return AVATAR_COLORS[h]
+}
+
 export default function TicketTable({ tickets, responsables, perfil, title, soloMios }: Props) {
   const router = useRouter()
   const [estadoFiltro, setEstadoFiltro] = useState<string>('Todos')
@@ -27,6 +35,17 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
     tickets.forEach(t => { c[t.estado] = (c[t.estado] || 0) + 1 })
+    return c
+  }, [tickets])
+
+  // Tickets abiertos por responsable (excluye Resuelto)
+  const ticketsPorResponsable = useMemo(() => {
+    const c: Record<string, number> = {}
+    tickets.forEach(t => {
+      if (t.estado !== 'Resuelto' && t.responsable_id) {
+        c[t.responsable_id] = (c[t.responsable_id] || 0) + 1
+      }
+    })
     return c
   }, [tickets])
 
@@ -81,6 +100,29 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
         })}
       </div>
 
+      {/* Panel responsables — solo en dashboard general */}
+      {!soloMios && responsables.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          {responsables.map(r => {
+            const n = ticketsPorResponsable[r.id] || 0
+            const color = avatarColor(r.nombre)
+            return (
+              <div key={r.id}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-600">
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {r.nombre.charAt(0)}
+                </div>
+                {r.nombre}
+                {n > 0
+                  ? <span style={{ background: color, color: 'white', borderRadius: 9999, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{n}</span>
+                  : <span className="text-gray-300 font-mono">0</span>
+                }
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative">
@@ -122,6 +164,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
               {filtrados.map((t, i) => {
                 const cfg = ESTADO_CONFIG[t.estado] || ESTADO_CONFIG['Recibido']
                 const areaCfg = AREA_CONFIG[t.area_afectada] || AREA_CONFIG['Otro']
+                const respColor = t.responsable_nombre ? avatarColor(t.responsable_nombre) : '#9ca3af'
                 return (
                   <tr key={t.id}
                     onClick={() => setSelected(t)}
@@ -149,7 +192,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                       {t.responsable_nombre
                         ? <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                              style={{ background: 'var(--accent)', color: 'white', fontSize: '10px' }}>
+                              style={{ background: respColor, color: 'white', fontSize: '10px' }}>
                               {t.responsable_nombre.charAt(0)}
                             </div>
                             <span className="text-gray-700">{t.responsable_nombre}</span>
@@ -167,7 +210,6 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
         )}
       </div>
 
-      {/* Modal */}
       {selected && (
         <TicketModal
           ticket={selected}
