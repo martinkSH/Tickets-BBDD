@@ -81,7 +81,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
 
           {/* Info del solicitante */}
           <div className="grid grid-cols-2 gap-4">
