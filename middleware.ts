@@ -13,39 +13,16 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: object }) =>
+            supabaseResponse.cookies.set(name, value, options as never)
           )
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
-
-  // Rutas públicas (no requieren auth)
-  const publicas = ['/login', '/nuevo']
-  if (publicas.some(p => pathname.startsWith(p))) return supabaseResponse
-
-  // Si no hay sesión, redirigir al login
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Si intenta acceder a /admin, verificar que sea admin
-  if (pathname.startsWith('/admin')) {
-    const { data: perfil } = await supabase
-      .from('perfiles')
-      .select('rol')
-      .eq('id', user.id)
-      .single()
-
-    if (perfil?.rol !== 'admin') {
-      return NextResponse.redirect(new URL('/tablero', request.url))
-    }
-  }
+  // Solo refrescar la sesión — la protección de rutas la hacen los page.tsx
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }
