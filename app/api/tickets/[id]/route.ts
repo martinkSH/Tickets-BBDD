@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { mailTicketAsignado } from '@/lib/mailer'
+import { mailTicketAsignadoResponsable, mailTicketAsignadoSolicitante, mailTicketResuelto } from '@/lib/mailer'
 import type { Estado } from '@/lib/types'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -13,6 +13,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     comentario?: string
     tipo_ticket?: string
   }
+
+  // Obtener ticket actual antes de actualizar
+  const { data: ticketActual } = await supabase
+    .from('tickets_con_responsable').select('*').eq('id', params.id).single()
 
   const updates: Record<string, unknown> = {}
   if (responsable_id !== undefined) {
@@ -33,29 +37,48 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { error } = await supabase.from('tickets').update(updates).eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Mandar mail al solicitante si se asigna responsable
-  const nuevoEstado = updates.estado as string || estado
-  if (responsable_id && (nuevoEstado === 'Asignado' || estado === 'Asignado')) {
-    try {
-      const { data: ticket } = await supabase
-        .from('tickets_con_responsable')
-        .select('*')
-        .eq('id', params.id)
-        .single()
+  // Obtener ticket actualizado
+  const { data: ticket } = await supabase
+    .from('tickets_con_responsable').select('*').eq('id', params.id).single()
 
-      if (ticket) {
-        await mailTicketAsignado({
-          numero: ticket.numero,
-          mail_solicitante: ticket.mail_solicitante,
-          area_afectada: ticket.area_afectada,
-          descripcion: ticket.descripcion,
-          proveedor: ticket.proveedor,
-          responsable_nombre: ticket.responsable_nombre,
-          comentario: comentario,
-        })
+  if (ticket) {
+    const nuevoEstado = (updates.estado as string) || estado
+
+    // Asignación: mail al responsable + mail al solicitante
+    if (responsable_id && nuevoEstado === 'Asignado') {
+      const { data: resp } = await supabase
+        .from('perfiles').select('mail, nombre').eq('id', responsable_id).single()
+
+      if (resp) {
+        try {
+          await mailTicketAsignadoResponsable({
+            ...ticket,
+            responsable_mail: resp.mail,
+            responsable_nombre: resp.nombre,
+            comentario,
+          })
+        } catch (e) { console.error('Mail responsable error:', e) }
+
+        try {
+          await mailTicketAsignadoSolicitante({
+            ...ticket,
+            responsable_nombre: resp.nombre,
+            comentario,
+          })
+        } catch (e) { console.error('Mail solicitante error:', e) }
       }
-    } catch (e) {
-      console.error('Error enviando mail asignacion:', e)
+    }
+
+    // Resuelto: mail al solicitante
+    if (nuevoEstado === 'Resuelto') {
+      try {
+        await mailTicketResuelto({
+          ...ticket,
+          responsable_nombre: ticket.responsable_nombre || 'El equipo',
+          comentario_solucion: comentario,
+          tipo_ticket,
+        })
+      } catch (e) { console.error('Mail resuelto error:', e) }
     }
   }
 
