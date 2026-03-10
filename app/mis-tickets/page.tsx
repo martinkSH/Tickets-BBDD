@@ -1,7 +1,9 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
+
+export const dynamic = 'force-dynamic'
 
 export default async function MisTicketsPage() {
   const supabase = createClient()
