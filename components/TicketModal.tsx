@@ -68,6 +68,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
     >
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-8 flex flex-col fade-up"
+        style={{ minHeight: 'min(800px, calc(100vh - 64px))' }}
         onClick={e => e.stopPropagation()}
       >
 
