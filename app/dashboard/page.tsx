@@ -2,49 +2,30 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Ticket, Perfil } from '@/lib/types'
-import AppShell from '@/components/AppShell'
-import TicketTable from '@/components/TicketTable'
 
 export default function DashboardPage() {
-  const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [responsables, setResponsables] = useState<any[]>([])
-  const [ready, setReady] = useState(false)
+  const [log, setLog] = useState<string[]>(['Iniciando...'])
 
   useEffect(() => {
     const supabase = createClient()
+    const add = (msg: string) => setLog(prev => [...prev, msg])
 
-    const load = async () => {
-      // Esperar sesión activa
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { window.location.href = '/login'; return }
+    supabase.auth.getSession().then(({ data, error }) => {
+      add(`getSession: ${JSON.stringify(data?.session?.user?.email)} error: ${error?.message}`)
+    })
 
-      const { data: p } = await supabase.from('perfiles').select('*').eq('id', session.user.id).single()
-      if (!p) { window.location.href = '/login'; return }
-      setPerfil(p)
+    supabase.auth.getUser().then(({ data, error }) => {
+      add(`getUser: ${JSON.stringify(data?.user?.email)} error: ${error?.message}`)
+    })
 
-      const { data: t } = await supabase
-        .from('tickets_con_responsable').select('*').order('created_at', { ascending: false })
-      setTickets(t || [])
-
-      const { data: r } = await supabase.from('perfiles').select('id, nombre, mail').eq('activo', true).order('nombre')
-      setResponsables(r || [])
-      setReady(true)
-    }
-
-    load()
+    const keys = Object.keys(localStorage).filter(k => k.includes('supabase'))
+    add(`localStorage keys: ${keys.join(', ') || 'ninguno'}`)
   }, [])
 
-  if (!ready || !perfil) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f5f9' }}>
-      <div className="text-gray-400 text-sm">Cargando…</div>
-    </div>
-  )
-
   return (
-    <AppShell perfil={perfil}>
-      <TicketTable tickets={tickets} responsables={responsables} perfil={perfil} title="Todos los tickets" soloMios={false} />
-    </AppShell>
+    <div style={{ padding: 40, fontFamily: 'monospace', background: '#111', color: '#0f0', minHeight: '100vh' }}>
+      <h1 style={{ marginBottom: 20 }}>DEBUG</h1>
+      {log.map((l, i) => <div key={i} style={{ marginBottom: 8 }}>{l}</div>)}
+    </div>
   )
 }
