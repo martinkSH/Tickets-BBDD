@@ -1,40 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { buildResumen } from '@/lib/types'
+import { mailNuevoTicket } from '@/lib/mailer'
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient()
+  const body = await req.json()
+
+  const { data: ticket, error } = await supabase
+    .from('tickets')
+    .insert({
+      mail_solicitante: body.mail_solicitante,
+      area_afectada: body.area_afectada,
+      motivo_tarifas: body.motivo_tarifas,
+      motivo_bd: body.motivo_bd,
+      proveedor: body.proveedor,
+      ciudad: body.ciudad,
+      tipo_servicio: body.tipo_servicio,
+      fechas_servicio: body.fechas_servicio,
+      descripcion: body.descripcion,
+      imagen_url: body.imagen_url,
+    })
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Mandar mail a tarifas@sayhueque.com
   try {
-    const body = await req.json()
-    const { mail_solicitante, area_afectada, descripcion,
-            motivo_tarifas, motivo_bd, proveedor, ciudad,
-            tipo_servicio, fechas_servicio, imagen_url } = body
-
-    if (!mail_solicitante || !area_afectada || !descripcion) {
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 })
-    }
-
-    const supabase = createClient()
-    const resumen_servicio = buildResumen(proveedor, ciudad, tipo_servicio, fechas_servicio)
-
-    const { data, error } = await supabase
-      .from('tickets')
-      .insert([{
-        mail_solicitante, area_afectada, descripcion,
-        motivo_tarifas: motivo_tarifas || null,
-        motivo_bd: motivo_bd || null,
-        proveedor: proveedor || null,
-        ciudad: ciudad || null,
-        tipo_servicio: tipo_servicio || null,
-        fechas_servicio: fechas_servicio || null,
-        imagen_url: imagen_url || null,
-        resumen_servicio: resumen_servicio || null,
-        estado: 'Recibido',
-      }])
-      .select().single()
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ticket: data }, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    await mailNuevoTicket(ticket)
+  } catch (e) {
+    console.error('Error enviando mail nuevo ticket:', e)
   }
+
+  return NextResponse.json({ ok: true, ticket })
 }

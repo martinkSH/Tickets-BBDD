@@ -20,6 +20,7 @@ export default function LoginForm() {
       setLoading(false)
       return
     }
+    await new Promise(r => setTimeout(r, 500))
     window.location.href = '/dashboard'
   }
 

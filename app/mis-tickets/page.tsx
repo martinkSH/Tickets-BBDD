@@ -1,51 +1,40 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { Ticket, Perfil } from '@/lib/types'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
 
-export default function MisTicketsPage() {
-  const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [responsables, setResponsables] = useState<any[]>([])
-  const [ready, setReady] = useState(false)
+export const dynamic = 'force-dynamic'
 
-  useEffect(() => {
-    const supabase = createClient()
+export default async function MisTicketsPage() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-    const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { window.location.href = '/login'; return }
+  const { data: perfil } = await supabase
+    .from('perfiles').select('*').eq('id', user.id).single()
+  if (!perfil) redirect('/login')
 
-      const { data: p } = await supabase.from('perfiles').select('*').eq('id', session.user.id).single()
-      if (!p) { window.location.href = '/login'; return }
-      setPerfil(p)
+  const { data: tickets } = await supabase
+    .from('tickets_con_responsable')
+    .select('*')
+    .eq('responsable_id', user.id)
+    .order('created_at', { ascending: false })
 
-      const { data: t } = await supabase
-        .from('tickets_con_responsable').select('*')
-        .eq('responsable_id', session.user.id)
-        .order('created_at', { ascending: false })
-      setTickets(t || [])
-
-      const { data: r } = await supabase.from('perfiles').select('id, nombre, mail').eq('activo', true).order('nombre')
-      setResponsables(r || [])
-      setReady(true)
-    }
-
-    load()
-  }, [])
-
-  if (!ready || !perfil) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f5f9' }}>
-      <div className="text-gray-400 text-sm">Cargando…</div>
-    </div>
-  )
+  const { data: responsables } = await supabase
+    .from('perfiles')
+    .select('id, nombre, mail')
+    .eq('activo', true)
+    .order('nombre')
 
   return (
     <AppShell perfil={perfil}>
-      <TicketTable tickets={tickets} responsables={responsables} perfil={perfil} title="Mis tickets" soloMios={true} />
+      <TicketTable
+        tickets={tickets || []}
+        responsables={responsables || []}
+        perfil={perfil}
+        title="Mis tickets"
+        soloMios={true}
+      />
     </AppShell>
   )
 }
