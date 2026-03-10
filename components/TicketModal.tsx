@@ -66,10 +66,8 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
         position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.6)',
         backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
+        overflowY: 'auto',
+        padding: '24px 16px',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
@@ -80,10 +78,11 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           width: '100%',
           maxWidth: '680px',
-          height: '90vh',
+          maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          margin: '0 auto',
         }}
         onClick={e => e.stopPropagation()}
       >
