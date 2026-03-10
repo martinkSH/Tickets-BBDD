@@ -20,7 +20,6 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   const [tipoTicket, setTipoTicket] = useState(ticket.tipo_ticket || '')
   const [error, setError] = useState('')
 
-  // Auto-cambiar a Asignado cuando se elige responsable
   useEffect(() => {
     if (responsableId && responsableId !== ticket.responsable_id) {
       if (estado === 'Recibido') setEstado('Asignado')
@@ -62,14 +61,17 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto p-4"
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-8 flex flex-col fade-up"
+        onClick={e => e.stopPropagation()}
+      >
 
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col fade-up"
-        style={{ maxHeight: 'calc(100vh - 48px)' }}>
-
-        {/* Header fijo */}
+        {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -91,10 +93,9 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           </button>
         </div>
 
-        {/* Body scrolleable */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+        {/* Body */}
+        <div className="p-6 space-y-5">
 
-          {/* Info del solicitante */}
           <div className="grid grid-cols-2 gap-4">
             <Field label="Solicitante" value={ticket.mail_solicitante} />
             {ticket.proveedor && <Field label="Proveedor" value={ticket.proveedor} />}
@@ -127,11 +128,9 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
           <hr className="border-gray-100" />
 
-          {/* Gestión */}
           <div className="space-y-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestión del ticket</p>
 
-            {/* Responsable — auto-cambia estado a Asignado */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Responsable</label>
               <select value={responsableId} onChange={e => setResponsableId(e.target.value)}
@@ -142,13 +141,10 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                 ))}
               </select>
               {responsableId && responsableId !== ticket.responsable_id && estado === 'Asignado' && (
-                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
-                  ✓ Se cambiará automáticamente a Asignado y se notificará por mail
-                </p>
+                <p className="text-xs text-emerald-600 mt-1">✓ Se cambiará a Asignado y se notificará por mail</p>
               )}
             </div>
 
-            {/* Estado */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Estado</label>
               <div className="flex flex-wrap gap-2">
@@ -171,7 +167,6 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
               )}
             </div>
 
-            {/* Tipo ticket + comentario resolución (solo si Resuelto) */}
             {estado === 'Resuelto' && (
               <>
                 <div>
@@ -186,24 +181,21 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Comentario de resolución <span className="text-gray-400 font-normal">(se envía al solicitante)</span>
+                    Comentario de resolución <span className="text-gray-400 font-normal text-xs">(se envía al solicitante)</span>
                   </label>
                   <textarea value={comentario} onChange={e => setComentario(e.target.value)}
-                    rows={3}
-                    placeholder="Describí cómo se resolvió el ticket…"
+                    rows={3} placeholder="Describí cómo se resolvió el ticket…"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
                   />
                 </div>
               </>
             )}
 
-            {/* Comentario general (solo si NO es Resuelto) */}
             {estado !== 'Resuelto' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Comentario (opcional)</label>
                 <textarea value={comentario} onChange={e => setComentario(e.target.value)}
-                  rows={2}
-                  placeholder="Notas adicionales…"
+                  rows={2} placeholder="Notas adicionales…"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
                 />
               </div>
@@ -215,7 +207,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           )}
         </div>
 
-        {/* Footer fijo */}
+        {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
             Cancelar
