@@ -12,9 +12,11 @@ interface Props {
   perfil: Perfil
   title: string
   soloMios: boolean
+  page: number
+  pageSize: number
+  totalCount: number
 }
 
-const ESTADOS_FILTRO = ['Todos', ...ESTADOS_ORDEN] as const
 const AREAS_FILTRO = ['Todas', 'Tarifas', 'Base de Datos', 'Otro'] as const
 
 const AVATAR_COLORS = [
@@ -25,12 +27,15 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 
-export default function TicketTable({ tickets, responsables, perfil, title, soloMios }: Props) {
+export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount }: Props) {
   const router = useRouter()
   const [estadoFiltro, setEstadoFiltro] = useState<string>('Todos')
   const [areaFiltro, setAreaFiltro] = useState<string>('Todas')
   const [busqueda, setBusqueda] = useState('')
   const [selected, setSelected] = useState<Ticket | null>(null)
+
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const basePath = soloMios ? '/mis-tickets' : '/dashboard'
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
@@ -38,7 +43,6 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
     return c
   }, [tickets])
 
-  // Tickets abiertos por responsable (excluye Resuelto)
   const ticketsPorResponsable = useMemo(() => {
     const c: Record<string, number> = {}
     tickets.forEach(t => {
@@ -72,14 +76,22 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
     router.refresh()
   }
 
+  const goToPage = (p: number) => {
+    router.push(`${basePath}?page=${p}`)
+  }
+
   return (
     <div className="p-8 fade-up">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font)' }}>
-          {title}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">{filtrados.length} tickets{estadoFiltro !== 'Todos' ? ` · ${estadoFiltro}` : ''}</p>
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font)' }}>
+            {title}
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {totalCount.toLocaleString()} tickets en total · mostrando {((page) * pageSize) + 1}–{Math.min((page + 1) * pageSize, totalCount)}
+          </p>
+        </div>
       </div>
 
       {/* KPI chips */}
@@ -100,15 +112,14 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
         })}
       </div>
 
-      {/* Panel responsables — solo en dashboard general */}
+      {/* Panel responsables */}
       {!soloMios && responsables.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-5">
           {responsables.map(r => {
             const n = ticketsPorResponsable[r.id] || 0
             const color = avatarColor(r.nombre)
             return (
-              <div key={r.id}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-600">
+              <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-600">
                 <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {r.nombre.charAt(0)}
                 </div>
@@ -132,7 +143,6 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
             className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 w-72"
           />
         </div>
-
         <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
           {AREAS_FILTRO.map(a => (
             <button key={a} onClick={() => setAreaFiltro(a)}
@@ -154,9 +164,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
             <thead>
               <tr className="border-b border-gray-100">
                 {['Nro', 'Estado', 'Área', 'Solicitante', 'Proveedor', 'Responsable', 'Fecha'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    {h}
-                  </th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -168,13 +176,8 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                 return (
                   <tr key={t.id}
                     onClick={() => setSelected(t)}
-                    className={cx(
-                      'border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors',
-                      i % 2 === 0 ? '' : 'bg-gray-50/30'
-                    )}>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs font-medium text-gray-700">{t.numero || '—'}</span>
-                    </td>
+                    className={cx('border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors', i % 2 === 0 ? '' : 'bg-gray-50/30')}>
+                    <td className="px-4 py-3"><span className="font-mono text-xs font-medium text-gray-700">{t.numero || '—'}</span></td>
                     <td className="px-4 py-3">
                       <span className={cx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', cfg.bg, cfg.color)}>
                         <span className={cx('w-1.5 h-1.5 rounded-full shrink-0', cfg.dot)} />
@@ -182,9 +185,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>
-                        {t.area_afectada}
-                      </span>
+                      <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>{t.area_afectada}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">{t.mail_solicitante}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-[140px] truncate">{t.proveedor || '—'}</td>
@@ -199,9 +200,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                           </div>
                         : <span className="text-gray-300 text-xs">Sin asignar</span>}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">
-                      {formatFecha(t.created_at)}
-                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{formatFecha(t.created_at)}</td>
                   </tr>
                 )
               })}
@@ -209,6 +208,39 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           </table>
         )}
       </div>
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-xs text-gray-400">
+            Página {page + 1} de {totalPages} · {totalCount.toLocaleString()} tickets
+          </p>
+          <div className="flex items-center gap-1">
+            <button onClick={() => goToPage(0)} disabled={page === 0}
+              className="px-2 py-1.5 text-xs rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">«</button>
+            <button onClick={() => goToPage(page - 1)} disabled={page === 0}
+              className="px-3 py-1.5 text-xs rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">‹ Anterior</button>
+
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const start = Math.max(0, Math.min(page - 2, totalPages - 5))
+              const p = start + i
+              return (
+                <button key={p} onClick={() => goToPage(p)}
+                  className={cx('px-3 py-1.5 text-xs rounded border transition-colors',
+                    p === page ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 hover:bg-gray-50'
+                  )}>
+                  {p + 1}
+                </button>
+              )
+            })}
+
+            <button onClick={() => goToPage(page + 1)} disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 text-xs rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">Siguiente ›</button>
+            <button onClick={() => goToPage(totalPages - 1)} disabled={page >= totalPages - 1}
+              className="px-2 py-1.5 text-xs rounded border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-colors">»</button>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <TicketModal
