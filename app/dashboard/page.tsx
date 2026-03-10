@@ -10,16 +10,17 @@ export default function DashboardPage() {
     const supabase = createClient()
     const add = (msg: string) => setLog(prev => [...prev, msg])
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      add(`getSession: ${JSON.stringify(data?.session?.user?.email)} error: ${error?.message}`)
-    })
+    const run = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      add(`Session: ${session?.user?.email}`)
 
-    supabase.auth.getUser().then(({ data, error }) => {
-      add(`getUser: ${JSON.stringify(data?.user?.email)} error: ${error?.message}`)
-    })
+      const { data: perfil, error: e1 } = await supabase.from('perfiles').select('*').eq('id', session!.user.id).single()
+      add(`Perfil: ${JSON.stringify(perfil)} error: ${e1?.message}`)
 
-    const keys = Object.keys(localStorage).filter(k => k.includes('supabase'))
-    add(`localStorage keys: ${keys.join(', ') || 'ninguno'}`)
+      const { data: tickets, error: e2 } = await supabase.from('tickets_con_responsable').select('*').limit(3)
+      add(`Tickets: ${tickets?.length} error: ${e2?.message}`)
+    }
+    run()
   }, [])
 
   return (
