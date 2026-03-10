@@ -28,10 +28,28 @@ function businessHoursDiff(start: Date, end: Date): number {
   return totalMs / (1000 * 60 * 60)
 }
 
+async function fetchAllTickets(supabase: any) {
+  const PAGE = 1000
+  let all: any[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('tickets_con_responsable')
+      .select('*')
+      .range(from, from + PAGE - 1)
+      .order('created_at', { ascending: true })
+    if (error || !data || data.length === 0) break
+    all = all.concat(data)
+    if (data.length < PAGE) break
+    from += PAGE
+  }
+  return all
+}
+
 export async function GET() {
   const supabase = createClient()
-  const { data: tickets } = await supabase.from('tickets_con_responsable').select('*')
-  if (!tickets) return NextResponse.json({ error: 'No data' }, { status: 500 })
+  const tickets = await fetchAllTickets(supabase)
+  if (!tickets.length) return NextResponse.json({ error: 'No data' }, { status: 500 })
 
   const now = new Date()
 
@@ -56,7 +74,6 @@ export async function GET() {
     const fechaSol = t.fecha_resolucion ? new Date(t.fecha_resolucion) : null
     const horas = estado === 'Resuelto' && fechaSol ? businessHoursDiff(ts, fechaSol) : null
 
-    // Métricas en horario hábil
     if (isBusinessTime(ts)) {
       totalHabil++
       if (estado === 'Recibido') pendientes++
@@ -77,19 +94,16 @@ export async function GET() {
       }
     }
 
-    // Rangos horarios (todos)
     const h = ts.getHours()
     const rango = rangos.find(r => r.match(h))
     if (rango) rango.total++
 
-    // Atrasados (>24 hs hábiles sin resolver)
     if (estado !== 'Resuelto') {
       const diff = businessHoursDiff(ts, now)
       if (diff > 24) atrasados.push({ numero: t.numero, responsable: respNombre, estado, horas: diff })
     }
   }
 
-  // Totales actuales (sin filtro horario)
   const totalActual = tickets.length
   const recibidosAhora = tickets.filter(t => t.estado === 'Recibido').length
   const asignadosAhora = tickets.filter(t => ['Asignado','Pendiente Operador','Pendiente Ventas'].includes(t.estado)).length
