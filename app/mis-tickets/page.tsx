@@ -11,27 +11,40 @@ export default function MisTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [responsables, setResponsables] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [noAuth, setNoAuth] = useState(false)
 
   useEffect(() => {
-    const load = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/login'; return }
+    const supabase = createClient()
 
-      const { data: p } = await supabase.from('perfiles').select('*').eq('id', user.id).single()
-      if (!p) { window.location.href = '/login'; return }
+    const load = async (userId: string) => {
+      const { data: p } = await supabase.from('perfiles').select('*').eq('id', userId).single()
+      if (!p) { setNoAuth(true); return }
       setPerfil(p)
-
       const { data: t } = await supabase
-        .from('tickets_con_responsable').select('*').eq('responsable_id', user.id).order('created_at', { ascending: false })
+        .from('tickets_con_responsable').select('*')
+        .eq('responsable_id', userId)
+        .order('created_at', { ascending: false })
       setTickets(t || [])
-
       const { data: r } = await supabase.from('perfiles').select('id, nombre, mail').eq('activo', true).order('nombre')
       setResponsables(r || [])
       setLoading(false)
     }
-    load()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        load(session.user.id)
+      } else {
+        setNoAuth(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  if (noAuth) {
+    if (typeof window !== 'undefined') window.location.href = '/login'
+    return null
+  }
 
   if (loading || !perfil) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f5f9' }}>
