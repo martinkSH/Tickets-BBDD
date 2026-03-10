@@ -218,8 +218,6 @@ export async function mailTicketAsignadoSolicitante(ticket: {
     rows,
     description: ticket.descripcion,
     descriptionLabel: 'Tu consulta',
-    comentario: ticket.comentario,
-    comentarioLabel: 'Comentario del equipo',
     btnText: 'Ver estado del ticket →',
     btnHref: `${APP_URL}/nuevo`,
     footerNote: 'Te notificaremos cuando tu ticket sea resuelto.',
