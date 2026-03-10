@@ -53,10 +53,10 @@ export const ESTADO_CONFIG: Record<Estado, {
   label: string; color: string; bg: string; border: string; dot: string; pausa: boolean
 }> = {
   'Recibido':          { label: 'Recibido',       color: 'text-slate-600',  bg: 'bg-slate-100',  border: 'border-slate-200',  dot: 'bg-slate-400',  pausa: false },
-  'Asignado':          { label: 'Asignado',        color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-200',  dot: 'bg-amber-400',  pausa: false },
+  'Asignado':          { label: 'Asignado',        color: 'text-orange-700', bg: 'bg-orange-100', border: 'border-orange-300', dot: 'bg-orange-500', pausa: false },
   'Pendiente Operador':{ label: 'Pend. Operador',  color: 'text-orange-700', bg: 'bg-orange-50',  border: 'border-orange-200', dot: 'bg-orange-400', pausa: true  },
   'Pendiente Ventas':  { label: 'Pend. Ventas',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', dot: 'bg-purple-400', pausa: true  },
-  'Resuelto':          { label: 'Resuelto',        color: 'text-emerald-700',bg: 'bg-emerald-50', border: 'border-emerald-200',dot: 'bg-emerald-500',pausa: false },
+  'Resuelto':          { label: 'Resuelto',        color: 'text-emerald-800',bg: 'bg-emerald-100',border: 'border-emerald-300',dot: 'bg-emerald-600',pausa: false },
 }
 
 export const AREA_CONFIG: Record<string, { badge: string; short: string }> = {
