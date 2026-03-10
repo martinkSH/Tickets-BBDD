@@ -62,40 +62,57 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto p-4"
-      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+      }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-auto my-4 flex flex-col fade-up"
-        style={{ height: 'calc(100vh - 32px)' }}
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          width: '100%',
+          maxWidth: '680px',
+          height: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="font-mono text-sm font-semibold text-gray-500">{ticket.numero}</span>
-              <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>
-                {ticket.area_afectada}
-              </span>
-              <span className={cx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', cfg.bg, cfg.color)}>
-                <span className={cx('w-1.5 h-1.5 rounded-full', cfg.dot)} />
-                {cfg.label}
-              </span>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 600, color: '#6b7280' }}>{ticket.numero}</span>
+                <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>{ticket.area_afectada}</span>
+                <span className={cx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', cfg.bg, cfg.color)}>
+                  <span className={cx('w-1.5 h-1.5 rounded-full', cfg.dot)} />
+                  {cfg.label}
+                </span>
+              </div>
+              <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>{formatFecha(ticket.created_at)}</p>
             </div>
-            <p className="text-gray-400 text-xs">{formatFecha(ticket.created_at)}</p>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
-        {/* Body scrolleable */}
-        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
+        {/* Body */}
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Field label="Solicitante" value={ticket.mail_solicitante} />
             {ticket.proveedor && <Field label="Proveedor" value={ticket.proveedor} />}
             {ticket.ciudad && <Field label="Ciudad" value={ticket.ciudad} />}
@@ -106,53 +123,53 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Descripción</p>
-            <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-relaxed">{ticket.descripcion}</p>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Descripción</p>
+            <p style={{ fontSize: '14px', color: '#374151', background: '#f9fafb', borderRadius: '8px', padding: '12px', lineHeight: 1.6, margin: 0 }}>{ticket.descripcion}</p>
           </div>
 
           {ticket.imagen_url && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Adjunto</p>
-              <a href={ticket.imagen_url} target="_blank" rel="noreferrer"
-                className="text-sm text-blue-600 hover:underline break-all">{ticket.imagen_url}</a>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Adjunto</p>
+              <a href={ticket.imagen_url} target="_blank" rel="noreferrer" style={{ fontSize: '13px', color: '#4f6ef7', wordBreak: 'break-all' }}>{ticket.imagen_url}</a>
             </div>
           )}
 
           {ticket.comentario_asignacion && (
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Comentario asignación</p>
-              <p className="text-sm text-gray-600 bg-amber-50 rounded-lg p-3">{ticket.comentario_asignacion}</p>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Comentario asignación</p>
+              <p style={{ fontSize: '13px', color: '#374151', background: '#fffbeb', borderRadius: '8px', padding: '12px', margin: 0 }}>{ticket.comentario_asignacion}</p>
             </div>
           )}
 
-          <hr className="border-gray-100" />
+          <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />
 
-          <div className="space-y-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestión del ticket</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Gestión del ticket</p>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Responsable</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Responsable</label>
               <select value={responsableId} onChange={e => setResponsableId(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50">
+                style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none' }}>
                 <option value="">Sin asignar</option>
                 {responsables.map(r => (
                   <option key={r.id} value={r.id}>{r.nombre} — {r.mail}</option>
                 ))}
               </select>
               {responsableId && responsableId !== ticket.responsable_id && estado === 'Asignado' && (
-                <p className="text-xs text-emerald-600 mt-1">✓ Se cambiará a Asignado y se notificará por mail</p>
+                <p style={{ fontSize: '12px', color: '#059669', marginTop: '4px' }}>✓ Se cambiará a Asignado y se notificará por mail</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Estado</label>
-              <div className="flex flex-wrap gap-2">
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Estado</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {ESTADOS_ORDEN.map(e => {
                   const c = ESTADO_CONFIG[e]
+                  const active = estado === e
                   return (
                     <button key={e} onClick={() => setEstado(e)}
                       className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                        estado === e ? `${c.bg} ${c.color} border-current` : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                        active ? `${c.bg} ${c.color} border-current` : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
                       )}>
                       <span className={cx('w-1.5 h-1.5 rounded-full', c.dot)} />
                       {c.label}
@@ -162,29 +179,29 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                 })}
               </div>
               {ESTADO_CONFIG[estado]?.pausa && (
-                <p className="text-xs text-orange-600 mt-1.5">⏸ Este estado pausa el tiempo de resolución</p>
+                <p style={{ fontSize: '12px', color: '#ea580c', marginTop: '6px' }}>⏸ Este estado pausa el tiempo de resolución</p>
               )}
             </div>
 
             {estado === 'Resuelto' && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Tipo de ticket <span className="text-red-400">*</span>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
+                    Tipo de ticket <span style={{ color: '#f87171' }}>*</span>
                   </label>
                   <select value={tipoTicket} onChange={e => setTipoTicket(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50">
+                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none' }}>
                     <option value="">Seleccioná el tipo…</option>
                     {TIPOS_TICKET.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Comentario de resolución <span className="text-gray-400 font-normal text-xs">(se envía al solicitante)</span>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>
+                    Comentario de resolución <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 400 }}>(se envía al solicitante)</span>
                   </label>
                   <textarea value={comentario} onChange={e => setComentario(e.target.value)}
                     rows={3} placeholder="Describí cómo se resolvió el ticket…"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
+                    style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </>
@@ -192,28 +209,27 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
             {estado !== 'Resuelto' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Comentario (opcional)</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '6px' }}>Comentario (opcional)</label>
                 <textarea value={comentario} onChange={e => setComentario(e.target.value)}
                   rows={2} placeholder="Notas adicionales…"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
+                  style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
                 />
               </div>
             )}
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-600">{error}</div>
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#dc2626' }}>{error}</div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 shrink-0">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', fontSize: '13px', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>
             Cancelar
           </button>
           <button onClick={handleGuardar} disabled={loading}
-            className="px-5 py-2 text-sm font-medium text-white rounded-lg transition-all disabled:opacity-60"
-            style={{ background: 'var(--accent)' }}>
+            style={{ padding: '8px 20px', fontSize: '13px', fontWeight: 600, color: 'white', background: '#4f6ef7', border: 'none', borderRadius: '8px', cursor: 'pointer', opacity: loading ? 0.6 : 1 }}>
             {loading ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
@@ -225,8 +241,8 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
-      <p className="text-sm text-gray-700">{value}</p>
+      <p style={{ fontSize: '11px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>{label}</p>
+      <p style={{ fontSize: '13px', color: '#1a1d2e', margin: 0 }}>{value}</p>
     </div>
   )
 }
