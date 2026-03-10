@@ -32,7 +32,18 @@ export default function EstadisticasPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const router = useRouter()
+
+  const loadStats = async () => {
+    setLoading(true)
+    const res = await fetch('/api/stats?t=' + Date.now())
+    if (res.ok) {
+      setStats(await res.json())
+      setLastUpdate(new Date())
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -42,9 +53,7 @@ export default function EstadisticasPage() {
       const { data: p } = await sb.from('perfiles').select('*').eq('id', session.user.id).single()
       if (!p) { router.push('/login'); return }
       setPerfil(p)
-      const res = await fetch('/api/stats')
-      if (res.ok) setStats(await res.json())
-      setLoading(false)
+      await loadStats()
     }
     init()
   }, [])
@@ -54,28 +63,38 @@ export default function EstadisticasPage() {
   return (
     <AppShell perfil={perfil}>
       <div style={{ padding: '32px', maxWidth: 960 }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111827' }}>Estadísticas</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>Métricas en horario hábil (Lun–Vie 9–18), tiempos en horas hábiles</p>
+        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111827' }}>Estadísticas</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>
+              Métricas en horario hábil (Lun–Vie 9–18) · tiempos en horas hábiles
+              {lastUpdate && ` · Actualizado ${lastUpdate.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`}
+            </p>
+          </div>
+          <button onClick={loadStats} disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#374151', opacity: loading ? 0.6 : 1 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: loading ? 'rotate(360deg)' : 'none', transition: 'transform 0.5s' }}>
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+            </svg>
+            {loading ? 'Actualizando…' : 'Actualizar'}
+          </button>
         </div>
 
-        {loading ? (
+        {loading && !stats ? (
           <div style={{ padding: '80px 0', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>Cargando estadísticas…</div>
         ) : stats ? <>
 
-          {/* KPIs generales */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-            <StatCard label="Total tickets" value={stats.resumen.totalActual} />
+            <StatCard label="Total tickets" value={stats.resumen.totalActual.toLocaleString()} />
             <StatCard label="Sin asignar" value={stats.resumen.recibidosAhora} color="#ea580c" />
             <StatCard label="En curso" value={stats.resumen.asignadosAhora} color="#2563eb" />
-            <StatCard label="Resueltos" value={stats.resumen.resueltosAhora} color="#16a34a" />
+            <StatCard label="Resueltos" value={stats.resumen.resueltosAhora.toLocaleString()} color="#16a34a" />
             <StatCard label="Prom. resolución" value={`${stats.resumen.promHoras.toFixed(1)} hs`} sub="horas hábiles" color="#7c3aed" />
           </div>
 
-          {/* Atrasados */}
           {stats.atrasados.length > 0 && (
             <>
-              <SectionTitle>⏰ Tickets con +24 hs hábiles sin resolver ({stats.atrasados.length})</SectionTitle>
+              <SectionTitle>⏰ Con +24 hs hábiles sin resolver ({stats.atrasados.length})</SectionTitle>
               <div style={{ background: '#fff', border: '1px solid #fecaca', borderRadius: 12, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
@@ -100,8 +119,7 @@ export default function EstadisticasPage() {
             </>
           )}
 
-          {/* Por responsable */}
-          <SectionTitle>Por responsable (tickets en hs hábiles)</SectionTitle>
+          <SectionTitle>Por responsable</SectionTitle>
           <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -117,9 +135,9 @@ export default function EstadisticasPage() {
                   const pct = stats.resumen.totalHabil > 0 ? Math.round(r.total / stats.resumen.totalHabil * 100) : 0
                   return (
                     <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#111827' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#4f6ef7', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#4f6ef7', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
                             {r.nombre.charAt(0)}
                           </div>
                           {r.nombre}
@@ -134,7 +152,7 @@ export default function EstadisticasPage() {
                         </div>
                       </td>
                       <td style={{ padding: '12px 16px', color: '#16a34a', fontWeight: 600 }}>{r.resueltos}</td>
-                      <td style={{ padding: '12px 16px', color: '#7c3aed', fontWeight: 600 }}>{prom} {prom !== '—' ? 'hs' : ''}</td>
+                      <td style={{ padding: '12px 16px', color: '#7c3aed', fontWeight: 600 }}>{prom}{prom !== '—' ? ' hs' : ''}</td>
                     </tr>
                   )
                 })}
@@ -142,7 +160,6 @@ export default function EstadisticasPage() {
             </table>
           </div>
 
-          {/* Por emisor */}
           <SectionTitle>Top 10 solicitantes</SectionTitle>
           <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -166,8 +183,7 @@ export default function EstadisticasPage() {
             </table>
           </div>
 
-          {/* Rangos horarios */}
-          <SectionTitle>Tickets por rango horario (todos)</SectionTitle>
+          <SectionTitle>Tickets por rango horario</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {stats.rangos.map((r, i) => {
               const total = stats.rangos.reduce((s, x) => s + x.total, 0)
