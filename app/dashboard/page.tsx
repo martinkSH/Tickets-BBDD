@@ -1,39 +1,47 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { Ticket, Perfil } from '@/lib/types'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
 
-export const dynamic = 'force-dynamic'
+export default function DashboardPage() {
+  const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [responsables, setResponsables] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function DashboardPage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/login'; return }
 
-  const { data: perfil } = await supabase
-    .from('perfiles').select('*').eq('id', user.id).single()
-  if (!perfil) redirect('/login')
+      const { data: p } = await supabase.from('perfiles').select('*').eq('id', user.id).single()
+      if (!p) { window.location.href = '/login'; return }
+      setPerfil(p)
 
-  const { data: tickets } = await supabase
-    .from('tickets_con_responsable')
-    .select('*')
-    .order('created_at', { ascending: false })
+      const { data: t } = await supabase
+        .from('tickets_con_responsable').select('*').order('created_at', { ascending: false })
+      setTickets(t || [])
 
-  const { data: responsables } = await supabase
-    .from('perfiles')
-    .select('id, nombre, mail')
-    .eq('activo', true)
-    .order('nombre')
+      const { data: r } = await supabase.from('perfiles').select('id, nombre, mail').eq('activo', true).order('nombre')
+      setResponsables(r || [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading || !perfil) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#f4f5f9' }}>
+      <div className="text-gray-400 text-sm">Cargando…</div>
+    </div>
+  )
 
   return (
     <AppShell perfil={perfil}>
-      <TicketTable
-        tickets={tickets || []}
-        responsables={responsables || []}
-        perfil={perfil}
-        title="Todos los tickets"
-        soloMios={false}
-      />
+      <TicketTable tickets={tickets} responsables={responsables} perfil={perfil} title="Todos los tickets" soloMios={false} />
     </AppShell>
   )
 }
