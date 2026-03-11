@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Ticket, Perfil } from '@/lib/types'
 import { ESTADO_CONFIG, AREA_CONFIG, ESTADOS_ORDEN, formatFecha, cx } from '@/lib/types'
 import TicketModal from './TicketModal'
+import AutoRefresh from './AutoRefresh'
 
 interface Props {
   tickets: Ticket[]
@@ -105,9 +106,12 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           <h1 className="text-2xl font-semibold text-gray-900" style={{ fontFamily: 'var(--font)' }}>
             {title}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {totalCount.toLocaleString()} tickets en total · mostrando {((page) * pageSize) + 1}–{Math.min((page + 1) * pageSize, totalCount)}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-sm text-gray-500">
+              {totalCount.toLocaleString()} tickets en total · mostrando {((page) * pageSize) + 1}–{Math.min((page + 1) * pageSize, totalCount)}
+            </p>
+            <AutoRefresh />
+          </div>
         </div>
       </div>
 
