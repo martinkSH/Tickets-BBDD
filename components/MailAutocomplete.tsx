@@ -25,7 +25,8 @@ export default function MailAutocomplete({ value, onChange, placeholder, require
         .from('tickets')
         .select('mail_solicitante')
         .not('mail_solicitante', 'is', null)
-      const mails = [...new Set((data || []).map(d => d.mail_solicitante as string))].sort()
+      const raw = (data || []).map(d => d.mail_solicitante as string)
+      const mails = Array.from(new Set(raw)).sort()
       setAllMails(mails)
     }
     load()
