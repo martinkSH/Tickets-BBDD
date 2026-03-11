@@ -184,43 +184,6 @@ export default function EstadisticasPage() {
             </table>
           </div>
 
-          <SectionTitle>Tipos de resolución</SectionTitle>
-          <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, overflow: 'hidden', marginBottom: 8 }}>
-            {stats.porTipoTicket?.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f9fafb' }}>
-                    {['Tipo','Tickets','Porcentaje'].map(h => (
-                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.porTipoTicket.map((r, i) => {
-                    const total = stats.porTipoTicket.reduce((s, x) => s + x.total, 0)
-                    const pct = total > 0 ? Math.round(r.total / total * 100) : 0
-                    return (
-                      <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
-                        <td style={{ padding: '10px 16px', fontWeight: 500 }}>{r.tipo}</td>
-                        <td style={{ padding: '10px 16px', fontWeight: 700 }}>{r.total}</td>
-                        <td style={{ padding: '10px 16px', minWidth: 160 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: '#4f6ef7', borderRadius: 3 }} />
-                            </div>
-                            <span style={{ fontSize: 12, color: '#6b7280', minWidth: 32 }}>{pct}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <p style={{ padding: '20px 16px', color: '#9ca3af', fontSize: 13 }}>Sin datos aún</p>
-            )}
-          </div>
-
           <SectionTitle>Tickets por rango horario</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {stats.rangos.map((r, i) => {
