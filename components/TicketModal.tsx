@@ -49,7 +49,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [mounted, setMounted] = useState(false)
-  const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET])
+  const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET].sort((a, b) => a.localeCompare(b, 'es')))
   const [estadosDyn, setEstadosDyn] = useState<EstadoDyn[]>(ESTADOS_FIJOS)
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -58,7 +58,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
     // Cargar settings dinámicos
     fetch('/api/settings').then(r => r.json()).then(data => {
       const tiposSetting = data.find((s: any) => s.key === 'tipos_ticket')
-      if (tiposSetting?.value) setTiposTicket(tiposSetting.value)
+      if (tiposSetting?.value) setTiposTicket([...tiposSetting.value].sort((a: string, b: string) => a.localeCompare(b, 'es')))
 
       const estadosSetting = data.find((s: any) => s.key === 'estados_extra')
       if (estadosSetting?.value?.length) {
