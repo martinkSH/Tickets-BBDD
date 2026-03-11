@@ -172,7 +172,7 @@ export default function TicketForm() {
               {[
                 { k: 'proveedor', label: 'Proveedor', placeholder: 'Ej: Hotel Del Paine' },
                 { k: 'ciudad', label: 'Ciudad / Destino', placeholder: 'Ej: Torres del Paine' },
-                { k: 'tipo_servicio', label: 'Tipo de servicio', placeholder: 'Ej: Hab Dbl DBL' },
+                { k: 'tipo_servicio', label: 'Tipo de servicio (PVT/SIC/SPVT/Cat. de HAB)', placeholder: 'Ej: PVT, SIC, SPVT, Cat. de HAB' },
                 { k: 'fechas_servicio', label: 'Fecha / Rango del servicio en cuestión', placeholder: 'Ej: Dic 2025' },
               ].map(({ k, label, placeholder }) => (
                 <div key={k}>
