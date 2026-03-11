@@ -64,6 +64,7 @@ export async function GET() {
     { id: '18+',   label: '18:00–06:59', match: (h: number) => h >= 18 || h < 7, total: 0 },
   ]
   const atrasados: { numero: string; responsable: string; estado: string; horas: number }[] = []
+  const porTipoTicket: Record<string, number> = {}
 
   for (const t of tickets) {
     const ts = new Date(t.created_at)
@@ -115,5 +116,8 @@ export async function GET() {
     porEmisor: Object.entries(porEmisor).map(([mail, v]) => ({ mail, ...v, prom: v.cantHoras > 0 ? v.sumaHoras / v.cantHoras : 0 })).sort((a, b) => b.total - a.total).slice(0, 10),
     rangos: rangos.map(r => ({ label: r.label, total: r.total })),
     atrasados: atrasados.sort((a, b) => b.horas - a.horas),
+    porTipoTicket: Object.entries(porTipoTicket)
+      .map(([tipo, total]) => ({ tipo, total }))
+      .sort((a, b) => b.total - a.total),
   })
 }
