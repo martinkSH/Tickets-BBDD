@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { Perfil } from '@/lib/types'
 import { cx } from '@/lib/types'
@@ -54,18 +55,18 @@ export default function Sidebar({ perfil }: Props) {
     <aside style={{ width: 'var(--sidebar-w)', background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
       className="fixed left-0 top-0 h-screen flex flex-col z-30 shrink-0">
 
+      {/* Logo + título */}
       <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+        <div className="flex items-center gap-3 mb-3">
+          <div style={{ width: 44, height: 44, borderRadius: 10, overflow: 'hidden', background: '#1a1f2e', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Image src="/say-hueque-logo.png" alt="Say Hueque" width={40} height={40} style={{ objectFit: 'contain' }} />
           </div>
           <div>
-            <p className="text-white font-semibold text-sm leading-none">Tickets</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--sidebar-text)', fontFamily: 'var(--font-mono)' }}>BBDD & Tarifas</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1.2 }}>Sistema de Gestión</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1.2 }}>de Tickets</p>
           </div>
         </div>
+        <p style={{ margin: 0, fontSize: 10, color: '#3d4460', letterSpacing: '0.03em' }}>developed by Martin Kravetz</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col gap-0">
