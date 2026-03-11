@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Ticket, Perfil } from '@/lib/types'
 import { ESTADO_CONFIG, AREA_CONFIG, ESTADOS_ORDEN, formatFecha, cx } from '@/lib/types'
@@ -35,6 +35,8 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   const [busqueda, setBusqueda] = useState('')
   const [selected, setSelected] = useState<Ticket | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [hovered, setHovered] = useState<{ ticket: Ticket; x: number; y: number } | null>(null)
+  const hoverTimer = useRef<NodeJS.Timeout>()
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   const totalPages = Math.ceil(totalCount / pageSize)
@@ -197,6 +199,16 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                 return (
                   <tr key={t.id}
                     onClick={() => setSelected(t)}
+                    onMouseEnter={e => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      hoverTimer.current = setTimeout(() => {
+                        setHovered({ ticket: t, x: rect.left, y: rect.bottom })
+                      }, 500)
+                    }}
+                    onMouseLeave={() => {
+                      clearTimeout(hoverTimer.current)
+                      setHovered(null)
+                    }}
                     className={cx('border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors', i % 2 === 0 ? '' : 'bg-gray-50/30')}>
                     <td className="px-4 py-3"><span className="font-mono text-xs font-medium text-gray-700">{t.numero || '—'}</span></td>
                     <td className="px-4 py-3">
@@ -278,6 +290,11 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
         </div>
       )}
 
+      {/* Tooltip hover */}
+      {hovered && (
+        <TicketTooltip ticket={hovered.ticket} x={hovered.x} y={hovered.y} />
+      )}
+
       {selected && (
         <TicketModal
           ticket={selected}
@@ -287,6 +304,70 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           onUpdated={afterUpdate}
         />
       )}
+    </div>
+  )
+}
+
+
+// ── Tooltip de hover ────────────────────────────────────────────────────────
+function TicketTooltip({ ticket: t, x, y }: { ticket: Ticket; x: number; y: number }) {
+  const cfg = ESTADO_CONFIG[t.estado] || ESTADO_CONFIG['Recibido']
+  const areaCfg = AREA_CONFIG[t.area_afectada] || AREA_CONFIG['Otro']
+
+  // Posicionamiento: aparece debajo de la fila, alineado a la izquierda
+  const left = Math.min(x + 8, window.innerWidth - 340)
+  const top = y + 6
+
+  return (
+    <div style={{
+      position: 'fixed', left, top, zIndex: 8000,
+      width: 320, background: 'white',
+      border: '1px solid #e5e7eb', borderRadius: 12,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
+      padding: '14px 16px',
+      pointerEvents: 'none', // no interfiere con el mouse
+      animation: 'tooltip-in 0.12s ease',
+    }}>
+      <style>{`@keyframes tooltip-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#6b7280', background: '#f3f4f6', padding: '2px 7px', borderRadius: 5 }}>{t.numero}</span>
+        <span className={cx('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', cfg.bg, cfg.color)}>
+          <span className={cx('w-1.5 h-1.5 rounded-full', cfg.dot)} />
+          {cfg.label}
+        </span>
+        <span className={cx('px-2 py-0.5 rounded text-xs font-medium ml-auto', areaCfg.badge)}>{t.area_afectada}</span>
+      </div>
+
+      {/* Descripción */}
+      <p style={{ margin: '0 0 10px', fontSize: 13, color: '#374151', lineHeight: 1.5,
+        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+      }}>{t.descripcion}</p>
+
+      {/* Detalles en grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', fontSize: 12 }}>
+        {[
+          ['Solicitante', t.mail_solicitante],
+          ['Responsable', t.responsable_nombre || 'Sin asignar'],
+          t.proveedor ? ['Proveedor', t.proveedor] : null,
+          t.ciudad ? ['Ciudad', t.ciudad] : null,
+          t.tipo_servicio ? ['Servicio', t.tipo_servicio] : null,
+          t.fechas_servicio ? ['Fechas', t.fechas_servicio] : null,
+          t.tipo_ticket ? ['Tipo resolución', t.tipo_ticket] : null,
+        ].filter(Boolean).map(([label, value]) => (
+          <div key={label as string}>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+            <p style={{ margin: '1px 0 0', color: '#374151', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#9ca3af' }}>{formatFecha(t.created_at)}</span>
+        <span style={{ fontSize: 11, color: '#9ca3af', background: '#f9fafb', border: '1px solid #f0f0f0', borderRadius: 6, padding: '2px 8px' }}>Click para editar →</span>
+      </div>
     </div>
   )
 }
