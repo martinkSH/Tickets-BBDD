@@ -16,6 +16,8 @@ interface Props {
   page: number
   pageSize: number
   totalCount: number
+  responsableFilter?: string | null
+  ticketsPorResponsable?: Record<string, number>
 }
 
 const AREAS_FILTRO = ['Todas', 'Tarifas', 'Base de Datos', 'Otro'] as const
@@ -28,10 +30,10 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 
-export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount }: Props) {
+export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount, responsableFilter, ticketsPorResponsable: ticketsPorResponsableProps }: Props) {
   const router = useRouter()
   const [estadoFiltro, setEstadoFiltro] = useState<string>('Todos')
-  const [responsableFiltro, setResponsableFiltro] = useState<string | null>(null)
+  const responsableFiltro = responsableFilter ?? null
   const [areaFiltro, setAreaFiltro] = useState<string>('Todas')
   const [busqueda, setBusqueda] = useState('')
   const [selected, setSelected] = useState<Ticket | null>(null)
@@ -50,6 +52,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   }, [tickets])
 
   const ticketsPorResponsable = useMemo(() => {
+    if (ticketsPorResponsableProps) return ticketsPorResponsableProps
     const c: Record<string, number> = {}
     tickets.forEach(t => {
       if (t.estado !== 'Resuelto' && t.responsable_id) {
@@ -57,12 +60,11 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
       }
     })
     return c
-  }, [tickets])
+  }, [tickets, ticketsPorResponsableProps])
 
   const filtrados = useMemo(() => {
     return tickets.filter(t => {
       if (estadoFiltro !== 'Todos' && t.estado !== estadoFiltro) return false
-      if (responsableFiltro && t.responsable_id !== responsableFiltro) return false
       if (areaFiltro !== 'Todas' && t.area_afectada !== areaFiltro) return false
       if (busqueda) {
         const q = busqueda.toLowerCase()
@@ -145,7 +147,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
             const color = avatarColor(r.nombre)
             return (
               <div key={r.id}
-              onClick={() => setResponsableFiltro(responsableFiltro === r.id ? null : r.id)}
+              onClick={() => router.push(`${basePath}?page=0${responsableFiltro === r.id ? '' : `&responsable=${r.id}`}`)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all"
               style={{
                 background: responsableFiltro === r.id ? '#1f2937' : 'white',
@@ -172,7 +174,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           <span className="text-xs text-gray-500">Filtrando por responsable:</span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 text-white text-xs font-medium">
             {responsables.find(r => r.id === responsableFiltro)?.nombre}
-            <button onClick={() => setResponsableFiltro(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+            <button onClick={() => router.push(`${basePath}?page=0`)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
           </span>
         </div>
       )}
