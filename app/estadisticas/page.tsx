@@ -11,6 +11,7 @@ interface Stats {
   porResponsable: { nombre: string; total: number; resueltos: number; sumaHoras: number; cantHoras: number }[]
   porEmisor: { mail: string; total: number; resueltos: number; prom: number }[]
   rangos: { label: string; total: number }[]
+  porTipoTicket: { tipo: string; total: number }[]
   atrasados: { numero: string; responsable: string; estado: string; horas: number }[]
 }
 
@@ -199,6 +200,44 @@ export default function EstadisticasPage() {
                 </div>
               )
             })}
+          </div>
+
+          <SectionTitle>Tipos de resolución</SectionTitle>
+          <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, overflow: 'hidden' }}>
+            {stats.porTipoTicket.length === 0 ? (
+              <p style={{ padding: '20px', color: '#9ca3af', fontSize: 13 }}>Sin datos aún</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb' }}>
+                    {['Tipo de resolución', 'Cantidad', '% del total'].map(h => (
+                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.porTipoTicket.map((t, i) => {
+                    const totalResueltos = stats.porTipoTicket.reduce((s, x) => s + x.total, 0)
+                    const pct = totalResueltos > 0 ? (t.total / totalResueltos * 100).toFixed(1) : '0'
+                    const barW = totalResueltos > 0 ? (t.total / stats.porTipoTicket[0].total * 100) : 0
+                    return (
+                      <tr key={i} style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: 500 }}>{t.tipo}</td>
+                        <td style={{ padding: '10px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 80, height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ width: `${barW}%`, height: '100%', background: '#4f6ef7', borderRadius: 3 }} />
+                            </div>
+                            <span style={{ fontWeight: 600 }}>{t.total}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 16px', color: '#6b7280' }}>{pct}%</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
 
         </> : <p style={{ color: '#9ca3af' }}>No se pudieron cargar las estadísticas.</p>}
