@@ -347,7 +347,7 @@ function TicketTooltip({ ticket: t, x, y }: { ticket: Ticket; x: number; y: numb
 
       {/* Detalles en grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', fontSize: 12 }}>
-        {[
+        {([
           ['Solicitante', t.mail_solicitante],
           ['Responsable', t.responsable_nombre || 'Sin asignar'],
           t.proveedor ? ['Proveedor', t.proveedor] : null,
@@ -355,8 +355,8 @@ function TicketTooltip({ ticket: t, x, y }: { ticket: Ticket; x: number; y: numb
           t.tipo_servicio ? ['Servicio', t.tipo_servicio] : null,
           t.fechas_servicio ? ['Fechas', t.fechas_servicio] : null,
           t.tipo_ticket ? ['Tipo resolución', t.tipo_ticket] : null,
-        ].filter(Boolean).map(([label, value]) => (
-          <div key={label as string}>
+        ] as ([string, string] | null)[]).filter((x): x is [string, string] => x !== null).map(([label, value]) => (
+          <div key={label}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
             <p style={{ margin: '1px 0 0', color: '#374151', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</p>
           </div>
