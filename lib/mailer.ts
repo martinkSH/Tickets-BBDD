@@ -118,7 +118,7 @@ export async function mailNuevoTicket(ticket: {
   fechas_servicio?: string
   motivo_tarifas?: string
   motivo_bd?: string
-}) {
+}, destinatarios: string[] = ['tarifas@sayhueque.com']) {
   const rows = [
     { label: 'Solicitante', value: ticket.mail_solicitante },
     ...(ticket.proveedor ? [{ label: 'Proveedor', value: ticket.proveedor }] : []),
@@ -143,7 +143,7 @@ export async function mailNuevoTicket(ticket: {
 
   await transporter.sendMail({
     from: `"Tickets BBDD" <${process.env.GMAIL_USER}>`,
-    to: 'tarifas@sayhueque.com',
+    to: destinatarios.join(','),
     subject: `[${ticket.numero}] Nuevo ticket · ${ticket.area_afectada}`,
     html,
   })
@@ -247,7 +247,6 @@ export async function mailTicketResuelto(ticket: {
     { label: 'Área', value: ticket.area_afectada },
     { label: 'Resuelto por', value: ticket.responsable_nombre },
     ...(ticket.proveedor ? [{ label: 'Proveedor', value: ticket.proveedor }] : []),
-    ...(ticket.tipo_ticket ? [{ label: 'Tipo de resolución', value: ticket.tipo_ticket }] : []),
   ]
 
   const html = template({
