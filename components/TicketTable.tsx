@@ -31,6 +31,7 @@ function avatarColor(name: string) {
 export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount }: Props) {
   const router = useRouter()
   const [estadoFiltro, setEstadoFiltro] = useState<string>('Todos')
+  const [responsableFiltro, setResponsableFiltro] = useState<string | null>(null)
   const [areaFiltro, setAreaFiltro] = useState<string>('Todas')
   const [busqueda, setBusqueda] = useState('')
   const [selected, setSelected] = useState<Ticket | null>(null)
@@ -61,6 +62,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   const filtrados = useMemo(() => {
     return tickets.filter(t => {
       if (estadoFiltro !== 'Todos' && t.estado !== estadoFiltro) return false
+      if (responsableFiltro && t.responsable_id !== responsableFiltro) return false
       if (areaFiltro !== 'Todas' && t.area_afectada !== areaFiltro) return false
       if (busqueda) {
         const q = busqueda.toLowerCase()
@@ -142,7 +144,14 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
             const n = ticketsPorResponsable[r.id] || 0
             const color = avatarColor(r.nombre)
             return (
-              <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-600">
+              <div key={r.id}
+              onClick={() => setResponsableFiltro(responsableFiltro === r.id ? null : r.id)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all"
+              style={{
+                background: responsableFiltro === r.id ? '#1f2937' : 'white',
+                borderColor: responsableFiltro === r.id ? '#1f2937' : '#e5e7eb',
+                color: responsableFiltro === r.id ? 'white' : '#4b5563',
+              }}>
                 <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {r.nombre.charAt(0)}
                 </div>
@@ -154,6 +163,17 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Badge filtro responsable activo */}
+      {responsableFiltro && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-gray-500">Filtrando por responsable:</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 text-white text-xs font-medium">
+            {responsables.find(r => r.id === responsableFiltro)?.nombre}
+            <button onClick={() => setResponsableFiltro(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+          </span>
         </div>
       )}
 
@@ -186,7 +206,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Nro', 'Estado', 'Área', 'Solicitante', 'Proveedor', 'Responsable', 'Fecha', ''].map(h => (
+                {['Nro', 'Estado', 'Solicitante', 'Proveedor', 'Responsable', 'Fecha', ''].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -219,9 +239,6 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                       {t.estado === 'Resuelto' && t.tipo_ticket && (
                         <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>{t.tipo_ticket}</p>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cx('px-2 py-0.5 rounded text-xs font-medium', areaCfg.badge)}>{t.area_afectada}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">{t.mail_solicitante}</td>
                     <td className="px-4 py-3 text-gray-700 max-w-[140px] truncate">{t.proveedor || '—'}</td>
