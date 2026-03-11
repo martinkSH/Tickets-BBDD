@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MOTIVOS_TARIFAS, MOTIVOS_BD } from '@/lib/types'
+import MailAutocomplete from './MailAutocomplete'
 
 type Step = 'form' | 'success'
 
@@ -114,9 +115,12 @@ export default function TicketForm() {
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Tu mail <span className="text-red-400">*</span>
             </label>
-            <input type="email" required value={form.mail_solicitante} onChange={set('mail_solicitante')}
+            <MailAutocomplete
+              required
+              value={form.mail_solicitante}
+              onChange={v => setForm(f => ({ ...f, mail_solicitante: v }))}
               placeholder="nombre@sayhueque.com"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            />
           </div>
 
           {/* Área */}
