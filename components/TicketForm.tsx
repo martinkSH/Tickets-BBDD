@@ -169,7 +169,7 @@ export default function TicketForm() {
                 { k: 'proveedor', label: 'Proveedor', placeholder: 'Ej: Hotel Del Paine' },
                 { k: 'ciudad', label: 'Ciudad / Destino', placeholder: 'Ej: Torres del Paine' },
                 { k: 'tipo_servicio', label: 'Tipo de servicio', placeholder: 'Ej: Hab Dbl DBL' },
-                { k: 'fechas_servicio', label: 'Fecha / Rango', placeholder: 'Ej: Dic 2025' },
+                { k: 'fechas_servicio', label: 'Fecha / Rango del servicio en cuestión', placeholder: 'Ej: Dic 2025' },
               ].map(({ k, label, placeholder }) => (
                 <div key={k}>
                   <label className="block text-xs text-slate-500 mb-1">{label}</label>
