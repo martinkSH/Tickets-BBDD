@@ -55,26 +55,15 @@ export default function Sidebar({ perfil }: Props) {
       className="fixed left-0 top-0 h-screen flex flex-col z-30 shrink-0">
 
       {/* Header con logo */}
-      <div className="px-5 pt-6 pb-5 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div className="flex items-center gap-3 mb-3">
-          {/* Logo: mix-blend-mode screen elimina el fondo negro */}
-          <div style={{ width: 48, height: 48, flexShrink: 0, overflow: 'hidden', borderRadius: 8 }}>
-            <img
-              src="/say-hueque-logo.png"
-              alt="Say Hueque"
-              style={{
-                width: 72,
-                height: 72,
-                marginTop: -4,
-                marginLeft: -12,
-                mixBlendMode: 'screen',
-                display: 'block',
-              }}
-            />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1.25 }}>Sistema de Gestión</p>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'white', lineHeight: 1.25 }}>de Tickets</p>
+      <div className="px-4 pt-5 pb-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <img
+            src="/say-hueque-icon.png"
+            alt="Say Hueque"
+            style={{ width: 36, height: 36, mixBlendMode: 'screen', flexShrink: 0 }}
+          />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 }}>Sistema de Gestión de Tickets</p>
           </div>
         </div>
         <p style={{ margin: 0, fontSize: 10, color: '#3d4460', letterSpacing: '0.02em' }}>developed by Martin Kravetz</p>
