@@ -25,9 +25,19 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Mandar mail a tarifas@sayhueque.com
+  // Leer destinatarios desde settings
   try {
-    await mailNuevoTicket(ticket)
+    const { data: settings } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'alerta_destinatarios')
+      .single()
+
+    const destinatarios: string[] = settings?.value?.length
+      ? settings.value
+      : ['tarifas@sayhueque.com']
+
+    await mailNuevoTicket(ticket, destinatarios)
   } catch (e) {
     console.error('Error enviando mail nuevo ticket:', e)
   }
