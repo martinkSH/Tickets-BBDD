@@ -9,6 +9,8 @@ import { TIPOS_TICKET } from '@/lib/types'
 
 const ROLES = ['admin', 'responsable']
 
+interface EstadoExtra { key: string; label: string; pausa: boolean }
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 12, padding: '24px', marginBottom: 24 }}>
@@ -18,10 +20,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Tag({ label, onRemove }: { label: string; onRemove?: () => void }) {
+function Tag({ label, sub, onRemove }: { label: string; sub?: string; onRemove?: () => void }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f3f4f6', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#374151' }}>
-      {label}
+      {label}{sub && <span style={{ fontSize: 11, color: '#9ca3af' }}>{sub}</span>}
       {onRemove && (
         <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 0, lineHeight: 1, fontSize: 16 }}>×</button>
       )}
@@ -29,14 +31,22 @@ function Tag({ label, onRemove }: { label: string; onRemove?: () => void }) {
   )
 }
 
+const COLORES_ESTADO = [
+  { id: 'cyan',   label: 'Cyan',    dot: '#22d3ee' },
+  { id: 'pink',   label: 'Rosa',    dot: '#f472b6' },
+  { id: 'teal',   label: 'Teal',    dot: '#2dd4bf' },
+  { id: 'lime',   label: 'Lima',    dot: '#a3e635' },
+  { id: 'rose',   label: 'Rojo',    dot: '#fb7185' },
+]
+
 export default function SettingsPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [usuarios, setUsuarios] = useState<Perfil[]>([])
   const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET])
+  const [estadosExtra, setEstadosExtra] = useState<EstadoExtra[]>([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
-  // Nuevo usuario
   const [nuNombre, setNuNombre] = useState('')
   const [nuMail, setNuMail] = useState('')
   const [nuPass, setNuPass] = useState('')
@@ -44,10 +54,22 @@ export default function SettingsPage() {
   const [nuLoading, setNuLoading] = useState(false)
   const [nuError, setNuError] = useState('')
 
-  // Nuevo tipo ticket
   const [nuTipo, setNuTipo] = useState('')
 
+  const [nuEstado, setNuEstado] = useState('')
+  const [nuEstadoPausa, setNuEstadoPausa] = useState(false)
+
   const router = useRouter()
+
+  const showMsg = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000) }
+
+  const saveSetting = async (key: string, value: any) => {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value }),
+    })
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -57,16 +79,15 @@ export default function SettingsPage() {
       const { data: p } = await sb.from('perfiles').select('*').eq('id', session.user.id).single()
       if (!p) { router.push('/login'); return }
       setPerfil(p)
-
       const { data: u } = await sb.from('perfiles').select('*').order('nombre')
       setUsuarios(u || [])
-
-      // Cargar tipos ticket dinámicos desde settings
       const res = await fetch('/api/settings')
       if (res.ok) {
         const settings = await res.json()
         const tiposSetting = settings.find((s: any) => s.key === 'tipos_ticket')
         if (tiposSetting?.value) setTiposTicket(tiposSetting.value)
+        const estadosSetting = settings.find((s: any) => s.key === 'estados_extra')
+        if (estadosSetting?.value) setEstadosExtra(estadosSetting.value)
       }
       setLoading(false)
     }
@@ -75,41 +96,21 @@ export default function SettingsPage() {
 
   const agregarUsuario = async () => {
     if (!nuNombre || !nuMail || !nuPass) { setNuError('Completá todos los campos'); return }
-    setNuLoading(true)
-    setNuError('')
+    setNuLoading(true); setNuError('')
     try {
       const sb = createClient()
-      // Crear en Auth
-      const { data: authData, error: authError } = await sb.auth.admin?.createUser({
-        email: nuMail,
-        password: nuPass,
-        email_confirm: true,
-      }) as any
-
-      if (authError) {
-        // Si no tiene permisos admin, intentar signup normal
-        setNuError('No se pudo crear via admin. Creá el usuario desde Supabase Auth manualmente y luego agregá el perfil.')
-        setNuLoading(false)
-        return
-      }
-
-      // Insertar perfil
-      await sb.from('perfiles').upsert({
-        id: authData.user.id,
-        nombre: nuNombre,
-        mail: nuMail,
-        rol: nuRol,
-        activo: true,
+      const res = await fetch('/api/auth/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nuNombre, mail: nuMail, password: nuPass, rol: nuRol }),
       })
-
+      const data = await res.json()
+      if (!res.ok) { setNuError(data.error || 'Error al crear usuario'); setNuLoading(false); return }
       setNuNombre(''); setNuMail(''); setNuPass(''); setNuRol('responsable')
-      const { data: u } = await sb.from('perfiles').select('*').order('nombre')
+      const { data: u } = await createClient().from('perfiles').select('*').order('nombre')
       setUsuarios(u || [])
-      setMsg('Usuario creado correctamente')
-      setTimeout(() => setMsg(''), 3000)
-    } catch {
-      setNuError('Error al crear usuario')
-    }
+      showMsg('Usuario creado correctamente')
+    } catch { setNuError('Error al crear usuario') }
     setNuLoading(false)
   }
 
@@ -122,23 +123,30 @@ export default function SettingsPage() {
   const agregarTipo = async () => {
     if (!nuTipo.trim()) return
     const nuevos = [...tiposTicket, nuTipo.trim()]
-    setTiposTicket(nuevos)
-    setNuTipo('')
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'tipos_ticket', value: nuevos }),
-    })
+    setTiposTicket(nuevos); setNuTipo('')
+    await saveSetting('tipos_ticket', nuevos)
   }
 
   const eliminarTipo = async (tipo: string) => {
     const nuevos = tiposTicket.filter(t => t !== tipo)
     setTiposTicket(nuevos)
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'tipos_ticket', value: nuevos }),
-    })
+    await saveSetting('tipos_ticket', nuevos)
+  }
+
+  const agregarEstado = async () => {
+    if (!nuEstado.trim()) return
+    const key = nuEstado.trim()
+    const nuevo: EstadoExtra = { key, label: key, pausa: nuEstadoPausa }
+    const nuevos = [...estadosExtra, nuevo]
+    setEstadosExtra(nuevos); setNuEstado(''); setNuEstadoPausa(false)
+    await saveSetting('estados_extra', nuevos)
+    showMsg('Estado agregado. Se verá en el modal de tickets.')
+  }
+
+  const eliminarEstado = async (key: string) => {
+    const nuevos = estadosExtra.filter(e => e.key !== key)
+    setEstadosExtra(nuevos)
+    await saveSetting('estados_extra', nuevos)
   }
 
   if (!perfil) return null
@@ -148,7 +156,7 @@ export default function SettingsPage() {
       <div style={{ padding: '32px', maxWidth: 760 }}>
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111827' }}>Configuración</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>Usuarios, tipos de ticket y opciones del sistema</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#9ca3af' }}>Usuarios, estados y tipos de ticket</p>
         </div>
 
         {msg && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#166534', marginBottom: 20 }}>{msg}</div>}
@@ -174,9 +182,7 @@ export default function SettingsPage() {
                       <span style={{ background: u.rol === 'admin' ? '#ede9fe' : '#f0fdf4', color: u.rol === 'admin' ? '#7c3aed' : '#16a34a', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>{u.rol}</span>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
-                      <span style={{ background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
-                        {u.activo ? 'Activo' : 'Inactivo'}
-                      </span>
+                      <span style={{ background: u.activo ? '#dcfce7' : '#fee2e2', color: u.activo ? '#16a34a' : '#dc2626', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>{u.activo ? 'Activo' : 'Inactivo'}</span>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <button onClick={() => toggleActivo(u.id, u.activo)}
@@ -208,10 +214,45 @@ export default function SettingsPage() {
                 style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: nuLoading ? 0.6 : 1 }}>
                 {nuLoading ? 'Creando…' : 'Crear usuario'}
               </button>
-              <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                💡 Si falla la creación automática, creá el usuario en <a href="https://supabase.com/dashboard/project/mmdbqnewkbrqhfqlhyel/auth/users" target="_blank" style={{ color: '#4f6ef7' }}>Supabase Auth</a> y se agregará el perfil automáticamente.
-              </p>
             </div>
+          </Section>
+
+          {/* Estados extra */}
+          <Section title="🚦 Estados de ticket">
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Los estados base (Recibido, Asignado, Pendiente Operador, Pendiente Ventas, Resuelto) no se pueden modificar. Podés agregar estados intermedios que aparecerán en el modal entre Pendiente Ventas y Resuelto.
+            </p>
+
+            {/* Estados fijos */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {['Recibido','Asignado','Pend. Operador ⏸','Pend. Ventas ⏸'].map(e => (
+                <span key={e} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f3f4f6', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
+                  🔒 {e}
+                </span>
+              ))}
+              {estadosExtra.map(e => (
+                <Tag key={e.key} label={e.label} sub={e.pausa ? '⏸' : undefined} onRemove={() => eliminarEstado(e.key)} />
+              ))}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
+                🔒 Resuelto
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input value={nuEstado} onChange={e => setNuEstado(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') agregarEstado() }}
+                placeholder="Nombre del nuevo estado…"
+                style={{ flex: 1, minWidth: 200, border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <input type="checkbox" checked={nuEstadoPausa} onChange={e => setNuEstadoPausa(e.target.checked)} style={{ width: 14, height: 14 }} />
+                Pausa el tiempo ⏸
+              </label>
+              <button onClick={agregarEstado}
+                style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Agregar
+              </button>
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Los cambios se aplican inmediatamente en el modal de tickets.</p>
           </Section>
 
           {/* Tipos de ticket */}
@@ -231,7 +272,7 @@ export default function SettingsPage() {
                 Agregar
               </button>
             </div>
-            <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Los cambios se aplican inmediatamente en el modal de resolución de tickets.</p>
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Los cambios se aplican inmediatamente en el modal de resolución.</p>
           </Section>
 
         </>}
