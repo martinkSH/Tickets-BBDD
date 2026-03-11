@@ -16,14 +16,17 @@ export default function MailAutocomplete({ value, onChange, placeholder, require
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
 
-  // Cargar todos los mails al montar
+  // Cargar mails desde tickets existentes
   useEffect(() => {
     const load = async () => {
       const sb = createClient()
-      const { data } = await sb.from('solicitantes').select('mail').order('mail')
-      setAllMails(data?.map(d => d.mail) || [])
+      const { data } = await sb
+        .from('tickets')
+        .select('mail_solicitante')
+        .not('mail_solicitante', 'is', null)
+      const mails = [...new Set((data || []).map(d => d.mail_solicitante as string))].sort()
+      setAllMails(mails)
     }
     load()
   }, [])
@@ -54,17 +57,6 @@ export default function MailAutocomplete({ value, onChange, placeholder, require
     if (e.key === 'Tab' && activeIdx >= 0) { e.preventDefault(); select(suggestions[activeIdx]) }
   }
 
-  // Registrar mail nuevo al salir del campo si no existe
-  const handleBlur = async () => {
-    setTimeout(() => setOpen(false), 150)
-    if (!value || !value.includes('@')) return
-    if (allMails.includes(value.toLowerCase())) return
-    // Mail nuevo → registrar
-    const sb = createClient()
-    await sb.from('solicitantes').insert({ mail: value.toLowerCase() }).throwOnError().catch(() => {})
-    setAllMails(prev => [...prev, value.toLowerCase()].sort())
-  }
-
   return (
     <div style={{ position: 'relative' }}>
       <input
@@ -75,14 +67,14 @@ export default function MailAutocomplete({ value, onChange, placeholder, require
         onChange={e => handleChange(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={() => value.length >= 2 && suggestions.length > 0 && setOpen(true)}
-        onBlur={handleBlur}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
         autoComplete="off"
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
 
       {open && suggestions.length > 0 && (
-        <div ref={listRef} style={{
+        <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999,
           background: 'white', border: '1px solid #e2e8f0', borderRadius: 10,
           boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4, overflow: 'hidden',
