@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { MOTIVOS_TARIFAS, MOTIVOS_BD } from '@/lib/types'
 
 type Step = 'form' | 'success'
@@ -10,6 +11,10 @@ export default function TicketForm() {
   const [numero, setNumero] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [fileUploading, setFileUploading] = useState(false)
+  const [fileDragging, setFileDragging] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const blank = {
     mail_solicitante: '', area_afectada: '' as '' | 'Tarifas' | 'Base de Datos' | 'Otro',
@@ -26,9 +31,25 @@ export default function TicketForm() {
     setError('')
     setLoading(true)
     try {
+      // Subir archivo si hay uno
+      let imagen_url = form.imagen_url
+      if (file) {
+        setFileUploading(true)
+        const sb = createClient()
+        const ext = file.name.split('.').pop()
+        const path = `tickets/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadError } = await sb.storage
+          .from('adjuntos')
+          .upload(path, file, { cacheControl: '3600', upsert: false })
+        if (uploadError) throw new Error('Error al subir el archivo: ' + uploadError.message)
+        const { data: urlData } = sb.storage.from('adjuntos').getPublicUrl(path)
+        imagen_url = urlData.publicUrl
+        setFileUploading(false)
+      }
+
       const res = await fetch('/api/tickets', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, imagen_url }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -36,6 +57,7 @@ export default function TicketForm() {
       setStep('success')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error inesperado')
+      setFileUploading(false)
     } finally { setLoading(false) }
   }
 
@@ -171,18 +193,52 @@ export default function TicketForm() {
 
           {/* Adjunto */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Link a adjunto (opcional)</label>
-            <input type="url" value={form.imagen_url} onChange={set('imagen_url')}
-              placeholder="https://drive.google.com/..."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-            <p className="text-xs text-slate-400 mt-1">Link de Google Drive o similar</p>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Adjunto (opcional)</label>
+            <div
+              onDragOver={e => { e.preventDefault(); setFileDragging(true) }}
+              onDragLeave={() => setFileDragging(false)}
+              onDrop={e => {
+                e.preventDefault(); setFileDragging(false)
+                const f = e.dataTransfer.files[0]
+                if (f) setFile(f)
+              }}
+              onClick={() => fileRef.current?.click()}
+              style={{
+                border: `2px dashed ${fileDragging ? '#6366f1' : file ? '#22c55e' : '#e2e8f0'}`,
+                borderRadius: 10, padding: '20px 16px', textAlign: 'center',
+                cursor: 'pointer', transition: 'all 0.15s',
+                background: fileDragging ? '#f5f3ff' : file ? '#f0fdf4' : '#fafafa',
+              }}>
+              <input ref={fileRef} type="file" style={{ display: 'none' }}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
+              {file ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>{file.name}</span>
+                  <button type="button" onClick={e => { e.stopPropagation(); setFile(null) }}
+                    style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+                </div>
+              ) : (
+                <div>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px' }}>
+                    <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+                    <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+                  </svg>
+                  <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                    <span style={{ fontWeight: 600, color: '#6366f1' }}>Hacé click</span> o arrastrá un archivo
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>Imágenes, PDF, Word, Excel — máx. 10MB</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>
           )}
 
-          <button type="submit" disabled={loading || !form.area_afectada}
+          <button type="submit" disabled={loading || fileUploading || !form.area_afectada}
             className="w-full py-3 rounded-xl bg-brand-600 text-white font-medium text-sm hover:bg-brand-700 disabled:opacity-50 transition-all shadow-sm">
             {loading ? 'Enviando...' : 'Enviar solicitud'}
           </button>
