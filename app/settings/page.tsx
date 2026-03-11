@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET])
   const [estadosExtra, setEstadosExtra] = useState<EstadoExtra[]>([])
   const [alertaDestinatarios, setAlertaDestinatarios] = useState<string[]>(['tarifas@sayhueque.com'])
-  const [nuMail, setNuMail] = useState('')
+  const [nuMailAlerta, setNuMailAlerta] = useState('')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
@@ -154,9 +154,9 @@ export default function SettingsPage() {
   }
 
   const agregarDestinatario = async () => {
-    if (!nuMail.trim() || alertaDestinatarios.includes(nuMail.trim())) return
-    const nuevos = [...alertaDestinatarios, nuMail.trim()]
-    setAlertaDestinatarios(nuevos); setNuMail('')
+    if (!nuMailAlerta.trim() || alertaDestinatarios.includes(nuMailAlerta.trim())) return
+    const nuevos = [...alertaDestinatarios, nuMailAlerta.trim()]
+    setAlertaDestinatarios(nuevos); setNuMailAlerta('')
     await saveSetting('alerta_destinatarios', nuevos)
   }
 
@@ -283,7 +283,7 @@ export default function SettingsPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <input value={nuMail} onChange={e => setNuMail(e.target.value)}
+              <input value={nuMailAlerta} onChange={e => setNuMailAlerta(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') agregarDestinatario() }}
                 placeholder="nuevo@sayhueque.com"
                 type="email"
