@@ -99,6 +99,11 @@ export async function GET() {
     const rango = rangos.find(r => r.match(h))
     if (rango) rango.total++
 
+    // Tipos de resolución
+    if (estado === 'Resuelto' && t.tipo_ticket) {
+      porTipoTicket[t.tipo_ticket] = (porTipoTicket[t.tipo_ticket] || 0) + 1
+    }
+
     if (estado !== 'Resuelto') {
       const diff = businessHoursDiff(ts, now)
       if (diff > 24) atrasados.push({ numero: t.numero, responsable: respNombre, estado, horas: diff })
