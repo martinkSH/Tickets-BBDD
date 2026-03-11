@@ -44,6 +44,8 @@ export default function SettingsPage() {
   const [usuarios, setUsuarios] = useState<Perfil[]>([])
   const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET])
   const [estadosExtra, setEstadosExtra] = useState<EstadoExtra[]>([])
+  const [alertaDestinatarios, setAlertaDestinatarios] = useState<string[]>(['tarifas@sayhueque.com'])
+  const [nuMail, setNuMail] = useState('')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
@@ -88,6 +90,8 @@ export default function SettingsPage() {
         if (tiposSetting?.value) setTiposTicket(tiposSetting.value)
         const estadosSetting = settings.find((s: any) => s.key === 'estados_extra')
         if (estadosSetting?.value) setEstadosExtra(estadosSetting.value)
+        const alertaSetting = settings.find((s: any) => s.key === 'alerta_destinatarios')
+        if (alertaSetting?.value?.length) setAlertaDestinatarios(alertaSetting.value)
       }
       setLoading(false)
     }
@@ -147,6 +151,19 @@ export default function SettingsPage() {
     const nuevos = estadosExtra.filter(e => e.key !== key)
     setEstadosExtra(nuevos)
     await saveSetting('estados_extra', nuevos)
+  }
+
+  const agregarDestinatario = async () => {
+    if (!nuMail.trim() || alertaDestinatarios.includes(nuMail.trim())) return
+    const nuevos = [...alertaDestinatarios, nuMail.trim()]
+    setAlertaDestinatarios(nuevos); setNuMail('')
+    await saveSetting('alerta_destinatarios', nuevos)
+  }
+
+  const eliminarDestinatario = async (mail: string) => {
+    const nuevos = alertaDestinatarios.filter(m => m !== mail)
+    setAlertaDestinatarios(nuevos)
+    await saveSetting('alerta_destinatarios', nuevos)
   }
 
   if (!perfil) return null
@@ -253,6 +270,30 @@ export default function SettingsPage() {
               </button>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Los cambios se aplican inmediatamente en el modal de tickets.</p>
+          </Section>
+
+          {/* Alertas de nuevo ticket */}
+          <Section title="📬 Alertas de nuevo ticket">
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Estos mails reciben una notificación cada vez que se crea un ticket nuevo.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {alertaDestinatarios.map(m => (
+                <Tag key={m} label={m} onRemove={alertaDestinatarios.length > 1 ? () => eliminarDestinatario(m) : undefined} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input value={nuMail} onChange={e => setNuMail(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') agregarDestinatario() }}
+                placeholder="nuevo@sayhueque.com"
+                type="email"
+                style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none' }} />
+              <button onClick={agregarDestinatario}
+                style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Agregar
+              </button>
+            </div>
+            <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Mínimo 1 destinatario requerido.</p>
           </Section>
 
           {/* Tipos de ticket */}
