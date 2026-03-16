@@ -21,6 +21,12 @@ interface Tarifario {
   created_at: string
 }
 
+interface Responsable {
+  id: string
+  nombre: string
+  mail: string
+}
+
 interface Props {
   tarifarios: Tarifario[]
   totalCount: number
@@ -29,6 +35,13 @@ interface Props {
   cuentaEstados: Record<string, number>
   filters: { estado?: string; prioridad?: string; pais?: string; q?: string }
   perfil: Perfil
+  responsables: Responsable[]
+}
+
+const AVATAR_COLORS = ['#4f6ef7','#7c3aed','#0891b2','#059669','#d97706','#dc2626','#db2777','#65a30d']
+function avatarColor(name: string) {
+  let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length
+  return AVATAR_COLORS[h]
 }
 
 const ESTADOS = ['Pendiente', 'En Proceso', 'Cargado', 'No Cargar']
@@ -49,7 +62,7 @@ const PRIO_CFG: Record<string, { badge: string }> = {
 
 function cx(...c: (string|false|null|undefined)[]) { return c.filter(Boolean).join(' ') }
 
-export default function TarifariosTable({ tarifarios, totalCount, page, pageSize, cuentaEstados, filters, perfil }: Props) {
+export default function TarifariosTable({ tarifarios, totalCount, page, pageSize, cuentaEstados, filters, perfil, responsables }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState<Tarifario | null>(null)
   const [saving, setSaving] = useState(false)
@@ -81,10 +94,19 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
     setSaving(true)
     const wasNotCargado = editing?.estado !== 'Cargado'
     const nowCargado = t.estado === 'Cargado'
+    const prevCargoPor = editing?.cargo_por
+    // Buscar mail del responsable asignado
+    const resp = responsables.find(r => r.nombre === t.cargo_por)
     await fetch(`/api/tarifarios/${t.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...t, sendMail: sendMail && wasNotCargado && nowCargado }),
+      body: JSON.stringify({
+        ...t,
+        sendMail: sendMail && wasNotCargado && nowCargado,
+        prevCargoPor,
+        responsable_mail: resp?.mail || null,
+        responsable_nombre: resp?.nombre || t.cargo_por,
+      }),
     })
     setSaving(false)
     setEditing(null)
@@ -212,7 +234,16 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
                         {t.estado}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 14px', color: '#6b7280' }}>{t.cargo_por || '—'}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {t.cargo_por ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(t.cargo_por), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                            {t.cargo_por.charAt(0)}
+                          </div>
+                          <span style={{ fontSize: 13, color: '#374151' }}>{t.cargo_por}</span>
+                        </div>
+                      ) : <span style={{ color: '#d1d5db', fontSize: 12 }}>Sin asignar</span>}
+                    </td>
                     <td style={{ padding: '10px 14px', color: '#6b7280', fontSize: 12, whiteSpace: 'nowrap' }}>{formatFecha(t.fecha_carga)}</td>
                     <td style={{ padding: '10px 14px', maxWidth: 160 }}>
                       {t.nota_rapida && <p style={{ margin: 0, fontSize: 12, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={t.nota_rapida}>{t.nota_rapida}</p>}
@@ -274,6 +305,7 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
           tarifario={editing}
           perfil={perfil}
           saving={saving}
+          responsables={responsables}
           onClose={() => { setEditing(null); setShowNew(false) }}
           onSave={handleSave}
           onSaveAndMail={(t) => handleSave(t, true)}
@@ -284,10 +316,11 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────
-function TarifarioModal({ tarifario, perfil, saving, onClose, onSave, onSaveAndMail }: {
+function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSave, onSaveAndMail }: {
   tarifario: Tarifario | null
   perfil: Perfil
   saving: boolean
+  responsables: Responsable[]
   onClose: () => void
   onSave: (t: Tarifario) => void
   onSaveAndMail: (t: Tarifario) => void
@@ -360,8 +393,14 @@ function TarifarioModal({ tarifario, perfil, saving, onClose, onSave, onSaveAndM
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Cargó</label>
-              <input value={form.cargo_por || ''} onChange={set('cargo_por')} style={inputStyle} placeholder="Nombre" />
+              <label style={labelStyle}>Responsable de carga</label>
+              <select value={form.cargo_por || ''} onChange={set('cargo_por')} style={inputStyle}>
+                <option value="">Sin asignar</option>
+                {responsables.map(r => <option key={r.id} value={r.nombre}>{r.nombre}</option>)}
+              </select>
+              {form.cargo_por && form.cargo_por !== tarifario?.cargo_por && (
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#2563eb' }}>✉ Se enviará aviso por mail a {form.cargo_por}</p>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Nota rápida</label>
