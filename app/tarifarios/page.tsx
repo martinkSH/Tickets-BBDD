@@ -33,6 +33,12 @@ export default async function TarifariosPage({ searchParams }: {
   const { data: tarifarios, count } = await query.range(from, to)
 
   // Conteos por estado (todos, sin filtros)
+  const { data: responsables } = await supabase
+    .from('perfiles')
+    .select('id, nombre, mail')
+    .eq('activo', true)
+    .order('nombre')
+
   const { data: conteos } = await supabase
     .from('tarifarios')
     .select('estado')
@@ -56,6 +62,7 @@ export default async function TarifariosPage({ searchParams }: {
           q: searchParams.q,
         }}
         perfil={perfil}
+        responsables={responsables || []}
       />
     </AppShell>
   )
