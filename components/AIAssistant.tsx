@@ -85,7 +85,7 @@ export default function AIAssistant() {
         onClick={() => setOpen(o => !o)}
         title="Asistente IA"
         style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 998,
+          position: 'fixed', bottom: 24, right: 84, zIndex: 998,
           width: 52, height: 52, borderRadius: '50%',
           background: 'linear-gradient(135deg, #4f6ef7, #7c3aed)',
           border: 'none', cursor: 'pointer', color: 'white',
@@ -109,7 +109,7 @@ export default function AIAssistant() {
       {/* Panel del chat */}
       {open && (
         <div style={{
-          position: 'fixed', bottom: 86, right: 24, zIndex: 999,
+          position: 'fixed', bottom: 86, right: 84, zIndex: 999,
           width: 380, height: 520,
           background: 'white', borderRadius: 16,
           boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
