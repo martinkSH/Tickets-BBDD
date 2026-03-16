@@ -5,6 +5,7 @@ import type { Perfil } from '@/lib/types'
 import Sidebar from './Sidebar'
 import OnlineUsers from './OnlineUsers'
 import Chat from './Chat'
+import AIAssistant from './AIAssistant'
 
 interface Props {
   perfil: Perfil
@@ -50,6 +51,9 @@ export default function AppShell({ perfil, children }: Props) {
 
         {children}
       </main>
+
+      {/* Asistente IA flotante */}
+      <AIAssistant />
 
       {/* Chat flotante */}
       <Chat
