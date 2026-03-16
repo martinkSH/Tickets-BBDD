@@ -60,6 +60,14 @@ const PRIO_CFG: Record<string, { badge: string }> = {
   'BAJA':  { badge: 'bg-green-100 text-green-700' },
 }
 
+function sanitizeLink(url?: string) {
+  if (!url) return null
+  const u = url.trim()
+  if (!u) return null
+  if (u.startsWith('http://') || u.startsWith('https://')) return u
+  return 'https://' + u
+}
+
 function cx(...c: (string|false|null|undefined)[]) { return c.filter(Boolean).join(' ') }
 
 export default function TarifariosTable({ tarifarios, totalCount, page, pageSize, cuentaEstados, filters, perfil, responsables }: Props) {
@@ -258,8 +266,8 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
                     </td>
                     <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 4 }}>
-                        {t.link && (
-                          <a href={t.link} target="_blank" rel="noopener noreferrer"
+                        {sanitizeLink(t.link) && (
+                          <a href={sanitizeLink(t.link) || '#'} target="_blank" rel="noopener noreferrer"
                             style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid #e5e7eb', color: '#6b7280', display: 'flex', alignItems: 'center' }}
                             title="Ver tarifario">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
