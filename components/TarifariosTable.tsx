@@ -313,7 +313,7 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────
-function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSave, onSaveAndMail }: {
+function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSave }: {
   tarifario: Tarifario | null
   perfil: Perfil
   saving: boolean
