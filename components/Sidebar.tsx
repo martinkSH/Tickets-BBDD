@@ -64,7 +64,7 @@ export default function Sidebar({ perfil }: Props) {
             style={{ width: 36, height: 36, mixBlendMode: 'screen', flexShrink: 0 }}
           />
           <div style={{ minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 }}>Sistema de Gestión de Tickets</p>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 }}>Sistema de Gestión de Base de Datos</p>
           </div>
         </div>
         <p style={{ margin: 0, fontSize: 10, color: '#3d4460', letterSpacing: '0.02em' }}>developed by Martin Kravetz</p>
