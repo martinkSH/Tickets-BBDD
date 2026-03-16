@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import TarifariosTable from '@/components/TarifariosTable'
+import AIAssistant from '@/components/AIAssistant'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,7 @@ export default async function TarifariosPage({ searchParams }: {
 
   return (
     <AppShell perfil={perfil}>
+      <AIAssistant />
       <TarifariosTable
         tarifarios={tarifarios || []}
         totalCount={count || 0}
