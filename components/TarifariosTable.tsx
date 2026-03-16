@@ -334,9 +334,14 @@ function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSa
   const showMailBtn = wasNotCargado && nowCargado
 
   const handleNew = async () => {
+    const resp = responsables.find(r => r.nombre === form.cargo_por)
     const res = await fetch('/api/tarifarios', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        responsable_mail: resp?.mail || null,
+        responsable_nombre: resp?.nombre || form.cargo_por,
+      }),
     })
     const data = await res.json()
     if (data.ok) { onClose(); window.location.reload() }
