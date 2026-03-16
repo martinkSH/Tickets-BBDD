@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { mailNuevoTicket } from '@/lib/mailer'
+import { mailNuevoTicket, mailTicketAsignadoResponsable, mailTicketAsignadoSolicitante } from '@/lib/mailer'
 
 async function autoAssign(supabase: any, ticketId: string, ticket: any) {
-  // Verificar si está activo
   const { data: setting } = await supabase
     .from('app_settings').select('value').eq('key', 'auto_assign_enabled').single()
   if (!setting?.value) return
@@ -40,13 +39,39 @@ async function autoAssign(supabase: any, ticketId: string, ticket: any) {
   }).sort((a: any, b: any) => b.score - a.score)
 
   const mejor = scored[0]
+
   await supabase.from('tickets').update({
     responsable_id: mejor.id,
     estado: 'Asignado',
     assigned_at: new Date().toISOString(),
   }).eq('id', ticketId)
 
-  console.log(`[AUTO-ASSIGN] Ticket ${ticketId} → ${mejor.nombre} (score: ${mejor.score})`)
+  console.log(`[AUTO-ASSIGN] ${ticketId} → ${mejor.nombre} (score: ${mejor.score})`)
+
+  // Obtener ticket actualizado para los mails
+  const { data: ticketActualizado } = await supabase
+    .from('tickets_con_responsable').select('*').eq('id', ticketId).single()
+
+  const comentario = `Asignado automáticamente por el sistema según historial y disponibilidad.`
+
+  // Mail al responsable
+  try {
+    await mailTicketAsignadoResponsable({
+      ...ticketActualizado,
+      responsable_mail: mejor.mail,
+      responsable_nombre: mejor.nombre,
+      comentario,
+    })
+  } catch (e) { console.error('[AUTO-ASSIGN] Mail responsable error:', e) }
+
+  // Mail al solicitante
+  try {
+    await mailTicketAsignadoSolicitante({
+      ...ticketActualizado,
+      responsable_nombre: mejor.nombre,
+      comentario: undefined, // no mostrar comentario interno al solicitante
+    })
+  } catch (e) { console.error('[AUTO-ASSIGN] Mail solicitante error:', e) }
 }
 
 export async function POST(req: NextRequest) {
@@ -72,16 +97,16 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Mail de nuevo ticket
+  // Mail de nuevo ticket a tarifas
   try {
     const { data: settings } = await supabase
       .from('app_settings').select('value').eq('key', 'alerta_destinatarios').single()
     const destinatarios: string[] = settings?.value?.length
       ? settings.value : ['tarifas@sayhueque.com']
     await mailNuevoTicket(ticket, destinatarios)
-  } catch (e) { console.error('Error enviando mail nuevo ticket:', e) }
+  } catch (e) { console.error('Error mail nuevo ticket:', e) }
 
-  // Auto-asignar
+  // Auto-asignar (incluye mails al responsable y solicitante)
   try {
     await autoAssign(supabase, ticket.id, ticket)
   } catch (e) { console.error('Auto-assign error:', e) }
