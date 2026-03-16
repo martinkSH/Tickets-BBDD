@@ -99,23 +99,12 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
     }, 400)
   }
 
-  const handleSave = async (t: Tarifario, sendMail = false) => {
+  const handleSave = async (t: Tarifario, extraPayload: Record<string,any> = {}) => {
     setSaving(true)
-    const wasNotCargado = editing?.estado !== 'Cargado'
-    const nowCargado = t.estado === 'Cargado'
-    const prevCargoPor = originalCargoPor.current
-    // Buscar mail del responsable asignado
-    const resp = responsables.find(r => r.nombre === t.cargo_por)
     await fetch(`/api/tarifarios/${t.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...t,
-        sendMail: sendMail && wasNotCargado && nowCargado,
-        prevCargoPor,
-        responsable_mail: resp?.mail || null,
-        responsable_nombre: resp?.nombre || t.cargo_por,
-      }),
+      body: JSON.stringify({ ...t, ...extraPayload }),
     })
     setSaving(false)
     setEditing(null)
@@ -316,8 +305,7 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
           saving={saving}
           responsables={responsables}
           onClose={() => { setEditing(null); setShowNew(false) }}
-          onSave={handleSave}
-          onSaveAndMail={(t) => handleSave(t, true)}
+          onSave={(t, extra) => handleSave(t, extra)}
         />
       )}
     </div>
@@ -331,8 +319,7 @@ function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSa
   saving: boolean
   responsables: Responsable[]
   onClose: () => void
-  onSave: (t: Tarifario) => void
-  onSaveAndMail: (t: Tarifario) => void
+  onSave: (t: Tarifario, extra?: Record<string,any>) => void
 }) {
   const isNew = !tarifario
   const [form, setForm] = useState<Partial<Tarifario>>(tarifario || {
@@ -442,12 +429,27 @@ function TarifarioModal({ tarifario, perfil, saving, responsables, onClose, onSa
             </button>
           ) : (<>
             {showMailBtn && (
-              <button onClick={() => onSaveAndMail(form as Tarifario)} disabled={saving}
+              <button onClick={() => {
+                const resp = responsables.find(r => r.nombre === form.cargo_por)
+                onSave(form as Tarifario, {
+                  sendMail: true,
+                  prevCargoPor: tarifario?.cargo_por,
+                  responsable_mail: resp?.mail || null,
+                  responsable_nombre: resp?.nombre || form.cargo_por,
+                })
+              }} disabled={saving}
                 style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer' }}>
                 {saving ? 'Guardando…' : '✉ Guardar y enviar aviso'}
               </button>
             )}
-            <button onClick={() => onSave(form as Tarifario)} disabled={saving}
+            <button onClick={() => {
+              const resp = responsables.find(r => r.nombre === form.cargo_por)
+              onSave(form as Tarifario, {
+                prevCargoPor: tarifario?.cargo_por,
+                responsable_mail: resp?.mail || null,
+                responsable_nombre: resp?.nombre || form.cargo_por,
+              })
+            }} disabled={saving}
               style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', background: saving ? '#9ca3af' : '#4f6ef7', color: 'white', cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Guardando…' : 'Guardar'}
             </button>
