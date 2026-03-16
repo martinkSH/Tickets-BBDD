@@ -62,6 +62,7 @@ export default function SettingsPage() {
   const [nuTipo, setNuTipo] = useState('')
 
   const [nuEstado, setNuEstado] = useState('')
+  const [autoAssign, setAutoAssign] = useState(false)
   const [nuEstadoPausa, setNuEstadoPausa] = useState(false)
 
   const router = useRouter()
@@ -93,6 +94,8 @@ export default function SettingsPage() {
         if (tiposSetting?.value) setTiposTicket(tiposSetting.value)
         const estadosSetting = settings.find((s: any) => s.key === 'estados_extra')
         if (estadosSetting?.value) setEstadosExtra(estadosSetting.value)
+        const autoAssignSetting = settings.find((s: any) => s.key === 'auto_assign_enabled')
+        setAutoAssign(!!autoAssignSetting?.value)
         const alertaSetting = settings.find((s: any) => s.key === 'alerta_destinatarios')
         if (alertaSetting?.value?.length) setAlertaDestinatarios(alertaSetting.value)
         const tarifSetting = settings.find((s: any) => s.key === 'tarifarios_destinatarios')
@@ -140,6 +143,12 @@ export default function SettingsPage() {
     const nuevos = tiposTicket.filter(t => t !== tipo)
     setTiposTicket(nuevos)
     await saveSetting('tipos_ticket', nuevos)
+  }
+
+  const toggleAutoAssign = async (val: boolean) => {
+    setAutoAssign(val)
+    await saveSetting('auto_assign_enabled', val)
+    showMsg(val ? 'Auto-asignador activado' : 'Auto-asignador desactivado')
   }
 
   const agregarEstado = async () => {
@@ -249,6 +258,44 @@ export default function SettingsPage() {
                 style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: nuLoading ? 0.6 : 1 }}>
                 {nuLoading ? 'Creando…' : 'Crear usuario'}
               </button>
+            </div>
+          </Section>
+
+          {/* Auto-asignador */}
+          <Section title="🤖 Auto-asignador de tickets">
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: '0 0 8px', fontSize: 13, color: '#374151' }}>
+                  Cuando llega un ticket nuevo, el sistema elige automáticamente al mejor responsable considerando:
+                </p>
+                <ul style={{ margin: '0 0 12px', paddingLeft: 20, fontSize: 13, color: '#6b7280', lineHeight: 1.8 }}>
+                  <li><strong>Historial con el solicitante</strong> — quién trabajó más con esa persona</li>
+                  <li><strong>Historial con el proveedor</strong> — quién ya resolvió tickets de ese proveedor</li>
+                  <li><strong>Carga actual</strong> — penaliza a quienes tienen más tickets abiertos</li>
+                </ul>
+                <p style={{ margin: 0, fontSize: 12, color: '#9ca3af' }}>
+                  Solo se asigna a responsables con estado <strong>Activo</strong>. Si todos tienen la misma puntuación, elige al que tiene menos carga.
+                </p>
+              </div>
+              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => toggleAutoAssign(!autoAssign)}
+                  style={{
+                    width: 52, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer',
+                    background: autoAssign ? '#4f6ef7' : '#d1d5db',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 3, left: autoAssign ? 27 : 3,
+                    width: 22, height: 22, borderRadius: '50%', background: 'white',
+                    transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                    display: 'block',
+                  }}/>
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 700, color: autoAssign ? '#4f6ef7' : '#9ca3af' }}>
+                  {autoAssign ? 'ACTIVO' : 'INACTIVO'}
+                </span>
+              </div>
             </div>
           </Section>
 
