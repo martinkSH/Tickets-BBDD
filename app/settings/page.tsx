@@ -46,6 +46,9 @@ export default function SettingsPage() {
   const [estadosExtra, setEstadosExtra] = useState<EstadoExtra[]>([])
   const [alertaDestinatarios, setAlertaDestinatarios] = useState<string[]>(['tarifas@sayhueque.com'])
   const [nuMailAlerta, setNuMailAlerta] = useState('')
+  const [tarifDestinatarios, setTarifDestinatarios] = useState<{mail:string;area:string}[]>([])
+  const [nuTarifMail, setNuTarifMail] = useState('')
+  const [nuTarifArea, setNuTarifArea] = useState('Todas')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
@@ -92,6 +95,8 @@ export default function SettingsPage() {
         if (estadosSetting?.value) setEstadosExtra(estadosSetting.value)
         const alertaSetting = settings.find((s: any) => s.key === 'alerta_destinatarios')
         if (alertaSetting?.value?.length) setAlertaDestinatarios(alertaSetting.value)
+        const tarifSetting = settings.find((s: any) => s.key === 'tarifarios_destinatarios')
+        if (tarifSetting?.value?.length) setTarifDestinatarios(tarifSetting.value)
       }
       setLoading(false)
     }
@@ -151,6 +156,19 @@ export default function SettingsPage() {
     const nuevos = estadosExtra.filter(e => e.key !== key)
     setEstadosExtra(nuevos)
     await saveSetting('estados_extra', nuevos)
+  }
+
+  const agregarTarifDestinatario = async () => {
+    if (!nuTarifMail.trim() || tarifDestinatarios.find(d => d.mail === nuTarifMail.trim())) return
+    const nuevos = [...tarifDestinatarios, { mail: nuTarifMail.trim(), area: nuTarifArea }]
+    setTarifDestinatarios(nuevos); setNuTarifMail('')
+    await saveSetting('tarifarios_destinatarios', nuevos)
+  }
+
+  const eliminarTarifDestinatario = async (mail: string) => {
+    const nuevos = tarifDestinatarios.filter(d => d.mail !== mail)
+    setTarifDestinatarios(nuevos)
+    await saveSetting('tarifarios_destinatarios', nuevos)
   }
 
   const agregarDestinatario = async () => {
@@ -294,6 +312,49 @@ export default function SettingsPage() {
               </button>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Mínimo 1 destinatario requerido.</p>
+          </Section>
+
+          {/* Destinatarios Tarifarios */}
+          <Section title="📋 Destinatarios de avisos de tarifarios">
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Reciben un mail cuando se carga un nuevo tarifario. Los del área <strong>Aliwen</strong> solo reciben avisos de país <strong>ARG</strong>.
+            </p>
+            {tarifDestinatarios.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 16 }}>
+                <thead>
+                  <tr style={{ background: '#f9fafb' }}>
+                    {['Mail','Área',''].map(h => <th key={h} style={{ padding: '7px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tarifDestinatarios.map(d => (
+                    <tr key={d.mail} style={{ borderTop: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '8px 12px', color: '#374151' }}>{d.mail}</td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <span style={{ background: d.area === 'Aliwen' ? '#fef3c7' : '#ede9fe', color: d.area === 'Aliwen' ? '#92400e' : '#6d28d9', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>{d.area}</span>
+                      </td>
+                      <td style={{ padding: '8px 12px' }}>
+                        <button onClick={() => eliminarTarifDestinatario(d.mail)} style={{ fontSize: 12, color: '#dc2626', background: 'none', border: '1px solid currentColor', borderRadius: 6, padding: '2px 8px', cursor: 'pointer' }}>Quitar</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <input value={nuTarifMail} onChange={e => setNuTarifMail(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') agregarTarifDestinatario() }}
+                placeholder="mail@sayhueque.com" type="email"
+                style={{ flex: 1, minWidth: 200, border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none' }} />
+              <select value={nuTarifArea} onChange={e => setNuTarifArea(e.target.value)}
+                style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none', background: 'white' }}>
+                {['Todas','FIT','Grupos','Aliwen'].map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <button onClick={agregarTarifDestinatario}
+                style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Agregar
+              </button>
+            </div>
           </Section>
 
           {/* Tipos de ticket */}
