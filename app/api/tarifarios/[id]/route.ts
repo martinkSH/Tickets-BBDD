@@ -96,10 +96,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Mail al responsable asignado si cambia cargo_por
+  console.log('[TARIFARIO PATCH] cargo_por:', updates.cargo_por, '| prev:', prevCargoPor, '| mail:', responsable_mail)
   if (responsable_mail && updates.cargo_por && updates.cargo_por !== prevCargoPor) {
+    console.log('[TARIFARIO PATCH] Enviando mail asignacion a', responsable_mail)
     try {
       await enviarMailAsignado(data, responsable_mail, responsable_nombre || updates.cargo_por)
+      console.log('[TARIFARIO PATCH] Mail enviado OK')
     } catch (e) { console.error('Mail asignado tarifario error:', e) }
+  } else {
+    console.log('[TARIFARIO PATCH] NO se envia mail - condicion no cumplida')
   }
 
   // Mail de "cargado" a destinatarios configurados
