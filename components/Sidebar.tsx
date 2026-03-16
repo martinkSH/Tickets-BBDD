@@ -30,6 +30,7 @@ export default function Sidebar({ perfil }: Props) {
     { label: 'Todos los tickets', href: '/dashboard',   icon: <Icon d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
     { label: 'Mis tickets',       href: '/mis-tickets', icon: <Icon d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /> },
     { label: 'Nuevo ticket',      href: '/nuevo',       icon: <Icon d="M12 4v16m8-8H4" /> },
+    { label: 'Carga Tarifarios',  href: '/tarifarios',  icon: <Icon d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /> },
   ]
   const analisis = [
     { label: 'Estadísticas', href: '/estadisticas', icon: <Icon d="M3 3v18h18M7 16l4-4 4 4 4-8" /> },
