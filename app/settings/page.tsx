@@ -54,7 +54,7 @@ interface Solicitante {
   total?: number
 }
 
-export default function SolicitantesAreas() {
+function SolicitantesAreas() {
   const [solicitantes, setSolicitantes] = useState<Solicitante[]>([])
   const [mapa, setMapa] = useState<Record<string, string>>({}) // mail → area
   const [busqueda, setBusqueda] = useState('')
