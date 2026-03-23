@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import dynamic from 'next/dynamic'
-const SolicitantesAreas = dynamic(() => import('@/components/SolicitantesAreas'), { ssr: false })
 import type { Perfil } from '@/lib/types'
 import { TIPOS_TICKET } from '@/lib/types'
 
@@ -40,6 +38,216 @@ const COLORES_ESTADO = [
   { id: 'lime',   label: 'Lima',    dot: '#a3e635' },
   { id: 'rose',   label: 'Rojo',    dot: '#fb7185' },
 ]
+
+const AREAS = ['GRUPOS', 'FITS', 'ALIWEN', 'B2C', 'OTRO']
+const AREA_COLORS: Record<string, { bg: string; color: string }> = {
+  GRUPOS: { bg: '#fef3c7', color: '#92400e' },
+  FITS:   { bg: '#dbeafe', color: '#1e40af' },
+  ALIWEN: { bg: '#d1fae5', color: '#065f46' },
+  B2C:    { bg: '#ede9fe', color: '#5b21b6' },
+  OTRO:   { bg: '#f3f4f6', color: '#374151' },
+}
+
+interface Solicitante {
+  mail: string
+  area: string | null
+  total?: number
+}
+
+export default function SolicitantesAreas() {
+  const [solicitantes, setSolicitantes] = useState<Solicitante[]>([])
+  const [mapa, setMapa] = useState<Record<string, string>>({}) // mail → area
+  const [busqueda, setBusqueda] = useState('')
+  const [filtroArea, setFiltroArea] = useState<string>('Todos')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    cargar()
+  }, [])
+
+  const cargar = async () => {
+    setLoading(true)
+    // Cargar mapa existente desde settings
+    const res = await fetch('/api/settings')
+    const settings = await res.json()
+    const mapaActual: Record<string, string> = {}
+    const existente = settings.find((s: any) => s.key === 'solicitantes_areas')
+    if (existente?.value) {
+      for (const s of existente.value) {
+        mapaActual[s.mail.toLowerCase()] = s.area.toUpperCase()
+      }
+    }
+    setMapa(mapaActual)
+
+    // Cargar todos los mails únicos de tickets
+    const res2 = await fetch('/api/solicitantes-list')
+    if (res2.ok) {
+      const data = await res2.json()
+      const lista: Solicitante[] = data.map((d: any) => ({
+        mail: d.mail.toLowerCase(),
+        area: mapaActual[d.mail.toLowerCase()] || null,
+        total: d.total,
+      }))
+      // Ordenar: sin área primero, luego por total desc
+      lista.sort((a, b) => {
+        if (!a.area && b.area) return -1
+        if (a.area && !b.area) return 1
+        return (b.total || 0) - (a.total || 0)
+      })
+      setSolicitantes(lista)
+    }
+    setLoading(false)
+  }
+
+  const cambiarArea = async (mail: string, area: string) => {
+    setSaving(mail)
+    const nuevoMapa = { ...mapa, [mail]: area }
+    setMapa(nuevoMapa)
+    setSolicitantes(prev => prev.map(s => s.mail === mail ? { ...s, area } : s))
+
+    const value = Object.entries(nuevoMapa).map(([m, a]) => ({ mail: m, area: a }))
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'solicitantes_areas', value }),
+    })
+    setSaving(null)
+    setMsg('Guardado')
+    setTimeout(() => setMsg(''), 2000)
+  }
+
+  const filtrados = useMemo(() => {
+    return solicitantes.filter(s => {
+      const matchBusqueda = !busqueda || s.mail.includes(busqueda.toLowerCase())
+      const matchArea = filtroArea === 'Todos'
+        ? true
+        : filtroArea === 'Sin área'
+        ? !s.area
+        : s.area === filtroArea
+      return matchBusqueda && matchArea
+    })
+  }, [solicitantes, busqueda, filtroArea])
+
+  const sinArea = solicitantes.filter(s => !s.area).length
+  const conArea = solicitantes.filter(s => s.area).length
+
+  return (
+    <div>
+      {/* Resumen */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 14px', fontSize: 13 }}>
+          <span style={{ fontWeight: 700, color: '#16a34a' }}>{conArea}</span>
+          <span style={{ color: '#6b7280', marginLeft: 4 }}>con área asignada</span>
+        </div>
+        {sinArea > 0 && (
+          <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: '8px 14px', fontSize: 13 }}>
+            <span style={{ fontWeight: 700, color: '#d97706' }}>{sinArea}</span>
+            <span style={{ color: '#6b7280', marginLeft: 4 }}>sin área — no aparecen en estadísticas por área</span>
+          </div>
+        )}
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
+            placeholder="Buscar mail…"
+            style={{ paddingLeft: 30, paddingRight: 12, paddingTop: 7, paddingBottom: 7, border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, outline: 'none', width: 220 }} />
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {['Todos', 'Sin área', ...AREAS].map(a => (
+            <button key={a} onClick={() => setFiltroArea(a)}
+              style={{
+                padding: '6px 12px', fontSize: 12, fontWeight: 500, borderRadius: 20,
+                border: '1px solid',
+                borderColor: filtroArea === a ? (a === 'Sin área' ? '#fcd34d' : '#4f6ef7') : '#e5e7eb',
+                background: filtroArea === a ? (a === 'Sin área' ? '#fef3c7' : (AREA_COLORS[a]?.bg || '#eff6ff')) : 'white',
+                color: filtroArea === a ? (a === 'Sin área' ? '#92400e' : (AREA_COLORS[a]?.color || '#1e40af')) : '#6b7280',
+                cursor: 'pointer',
+              }}>
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Toast */}
+      {msg && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#16a34a', marginBottom: 12, display: 'inline-block' }}>
+          ✓ {msg}
+        </div>
+      )}
+
+      {/* Tabla */}
+      {loading ? (
+        <p style={{ color: '#9ca3af', fontSize: 13 }}>Cargando solicitantes…</p>
+      ) : (
+        <div style={{ border: '1px solid #f0f0f0', borderRadius: 12, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: '#f9fafb' }}>
+                <th style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Mail</th>
+                <th style={{ padding: '9px 14px', textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Tickets</th>
+                <th style={{ padding: '9px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Área</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.length === 0 ? (
+                <tr><td colSpan={3} style={{ padding: '30px', textAlign: 'center', color: '#9ca3af' }}>Sin resultados</td></tr>
+              ) : filtrados.map((s, i) => {
+                const areaCfg = s.area ? AREA_COLORS[s.area] : null
+                return (
+                  <tr key={s.mail} style={{ borderTop: '1px solid #f9fafb', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                    <td style={{ padding: '9px 14px', color: '#374151' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {!s.area && (
+                          <span title="Sin área asignada" style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0, display: 'inline-block' }} />
+                        )}
+                        {s.mail}
+                      </div>
+                    </td>
+                    <td style={{ padding: '9px 14px', textAlign: 'center', fontWeight: 600, color: '#6b7280' }}>{s.total || '—'}</td>
+                    <td style={{ padding: '9px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {areaCfg && (
+                          <span style={{ background: areaCfg.bg, color: areaCfg.color, borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
+                            {s.area}
+                          </span>
+                        )}
+                        <select
+                          value={s.area || ''}
+                          onChange={e => cambiarArea(s.mail, e.target.value)}
+                          disabled={saving === s.mail}
+                          style={{
+                            border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px',
+                            fontSize: 12, outline: 'none', background: 'white', cursor: 'pointer',
+                            color: s.area ? '#374151' : '#9ca3af',
+                            opacity: saving === s.mail ? 0.5 : 1,
+                          }}>
+                          <option value="" disabled>{s.area ? 'Cambiar…' : 'Asignar área…'}</option>
+                          {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                        {saving === s.mail && (
+                          <span style={{ fontSize: 11, color: '#9ca3af' }}>Guardando…</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <div style={{ padding: '8px 14px', background: '#f9fafb', borderTop: '1px solid #f0f0f0', fontSize: 12, color: '#9ca3af' }}>
+            Mostrando {filtrados.length} de {solicitantes.length} solicitantes
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
