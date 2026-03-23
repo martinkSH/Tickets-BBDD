@@ -58,10 +58,10 @@ export async function GET() {
   const porResponsable: Record<string, { nombre: string; total: number; resueltos: number; sumaHoras: number; cantHoras: number }> = {}
   const porEmisor: Record<string, { total: number; resueltos: number; sumaHoras: number; cantHoras: number }> = {}
   const rangos = [
-    { id: '07-10', label: '07:00–09:59', match: (h: number) => h >= 7 && h < 10, total: 0 },
-    { id: '10-15', label: '10:00–14:59', match: (h: number) => h >= 10 && h < 15, total: 0 },
-    { id: '15-18', label: '15:00–17:59', match: (h: number) => h >= 15 && h < 18, total: 0 },
-    { id: '18+',   label: '18:00–06:59', match: (h: number) => h >= 18 || h < 7, total: 0 },
+    { id: '06-09', label: '06:00–08:59', match: (h: number) => h >= 6 && h < 9,  total: 0 },
+    { id: '09-16', label: '09:00–15:59', match: (h: number) => h >= 9 && h < 16, total: 0 },
+    { id: '16-18', label: '16:00–17:59', match: (h: number) => h >= 16 && h < 18, total: 0 },
+    { id: '18+',   label: '18:00–05:59', match: (h: number) => h >= 18 || h < 6,  total: 0 },
   ]
   const atrasados: { numero: string; responsable: string; estado: string; horas: number }[] = []
   const porTipoTicket: Record<string, number> = {}
