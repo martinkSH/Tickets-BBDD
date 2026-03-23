@@ -64,6 +64,15 @@ export async function GET() {
     { id: '18+',   label: '18:00–05:59', match: (h: number) => h >= 18 || h < 6,  total: 0 },
   ]
   const atrasados: { numero: string; responsable: string; estado: string; horas: number }[] = []
+  const dias = [
+    { label: 'Lunes',     total: 0 },
+    { label: 'Martes',    total: 0 },
+    { label: 'Miércoles', total: 0 },
+    { label: 'Jueves',    total: 0 },
+    { label: 'Viernes',   total: 0 },
+    { label: 'Sábado',    total: 0 },
+    { label: 'Domingo',   total: 0 },
+  ]
   const porTipoTicket: Record<string, number> = {}
 
   for (const t of tickets) {
@@ -99,6 +108,11 @@ export async function GET() {
     const rango = rangos.find(r => r.match(h))
     if (rango) rango.total++
 
+    // Por día de la semana (0=Dom, 1=Lun ... 6=Sab)
+    const dow = ts.getDay()
+    const diaIdx = dow === 0 ? 6 : dow - 1 // convertir a Lun=0 ... Dom=6
+    dias[diaIdx].total++
+
     // Tipos de resolución
     if (estado === 'Resuelto' && t.tipo_ticket) {
       porTipoTicket[t.tipo_ticket] = (porTipoTicket[t.tipo_ticket] || 0) + 1
@@ -121,6 +135,7 @@ export async function GET() {
     porEmisor: Object.entries(porEmisor).map(([mail, v]) => ({ mail, ...v, prom: v.cantHoras > 0 ? v.sumaHoras / v.cantHoras : 0 })).sort((a, b) => b.total - a.total).slice(0, 10),
     rangos: rangos.map(r => ({ label: r.label, total: r.total })),
     atrasados: atrasados.sort((a, b) => b.horas - a.horas),
+    dias: dias.map(d => ({ label: d.label, total: d.total })),
     porTipoTicket: Object.entries(porTipoTicket)
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total),
