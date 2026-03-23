@@ -20,6 +20,7 @@ interface GlobalStats {
   porResponsable: { nombre: string; total: number; resueltos: number; sumaHoras: number; cantHoras: number }[]
   porEmisor: { mail: string; total: number; resueltos: number; prom: number }[]
   rangos: { label: string; total: number }[]
+  dias: { label: string; total: number }[]
   atrasados: { numero: string; responsable: string; estado: string; horas: number }[]
   porTipoTicket: { tipo: string; total: number }[]
 }
@@ -29,6 +30,7 @@ interface AreaStats {
   porEstado: Record<string, number>
   porSolicitante: { mail: string; total: number; resueltos: number; abiertos: number; rangos: number[]; promHoras: number }[]
   rangos: { label: string; total: number }[]
+  dias: { label: string; total: number }[]
   porTipo: { tipo: string; total: number }[]
 }
 
@@ -199,6 +201,9 @@ function GlobalView({ stats }: { stats: GlobalStats }) {
       <SectionTitle>Tickets por rango horario</SectionTitle>
       <RangosGrid rangos={stats.rangos} />
 
+      <SectionTitle>Tickets por día de la semana</SectionTitle>
+      <DiasGrid dias={stats.dias} />
+
       <SectionTitle>Tipos de resolución</SectionTitle>
       <TiposTable rows={stats.porTipoTicket} />
     </>
@@ -271,6 +276,10 @@ function AreaView({ area, stats }: { area: string; stats: AreaStats }) {
           </tbody>
         </table>
       </div>
+
+      {/* Días de la semana del área */}
+      <SectionTitle>Tickets por día de la semana — {area}</SectionTitle>
+      <DiasGrid dias={stats.dias} color={cfg.header} />
 
       {/* Tipos de resolución del área */}
       {stats.porTipo.length > 0 && (
@@ -362,6 +371,42 @@ function RangosGrid({ rangos, color = '#4f6ef7' }: { rangos: { label: string; to
               <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
             </div>
             <p style={{ margin: '5px 0 0', fontSize: 11, color: '#9ca3af' }}>{pct}% del total</p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DiasGrid({ dias, color = '#4f6ef7' }: { dias: { label: string; total: number }[]; color?: string }) {
+  const max = Math.max(...dias.map(d => d.total), 1)
+  const total = dias.reduce((s, d) => s + d.total, 0)
+  const DIA_COLORS: Record<string, string> = {
+    'Lunes': '#4f6ef7', 'Martes': '#7c3aed', 'Miércoles': '#0891b2',
+    'Jueves': '#059669', 'Viernes': '#d97706', 'Sábado': '#dc2626', 'Domingo': '#db2777'
+  }
+  return (
+    <div style={{ background: 'white', border: '1px solid #f0f0f0', borderRadius: 12, padding: '20px', display: 'flex', gap: 12, alignItems: 'flex-end' }}>
+      {dias.map((d, i) => {
+        const pct = Math.round(d.total / total * 100) || 0
+        const barH = Math.round((d.total / max) * 120)
+        const isWeekend = d.label === 'Sábado' || d.label === 'Domingo'
+        const barColor = color !== '#4f6ef7' ? color : (DIA_COLORS[d.label] || '#4f6ef7')
+        return (
+          <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{d.total}</span>
+            <div style={{ width: '100%', height: 120, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div style={{
+                width: '70%', height: barH || 2, borderRadius: '4px 4px 0 0',
+                background: isWeekend ? '#e5e7eb' : barColor,
+                opacity: isWeekend ? 0.6 : 1,
+                transition: 'height 0.3s ease',
+              }} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: isWeekend ? '#9ca3af' : '#374151', textAlign: 'center' }}>
+              {d.label.slice(0, 3)}
+            </span>
+            <span style={{ fontSize: 10, color: '#9ca3af' }}>{pct}%</span>
           </div>
         )
       })}
