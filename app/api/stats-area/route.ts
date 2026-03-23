@@ -64,10 +64,10 @@ export async function GET(req: NextRequest) {
 
   const rangosArea = [0, 0, 0, 0] // 07-10, 10-15, 15-18, 18+
   const rangoMatch = [
-    (h: number) => h >= 7 && h < 10,
-    (h: number) => h >= 10 && h < 15,
-    (h: number) => h >= 15 && h < 18,
-    (h: number) => h >= 18 || h < 7,
+    (h: number) => h >= 6 && h < 9,
+    (h: number) => h >= 9 && h < 16,
+    (h: number) => h >= 16 && h < 18,
+    (h: number) => h >= 18 || h < 6,
   ]
   const porTipo: Record<string, number> = {}
   const porEstado: Record<string, number> = {}
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     porEstado[estado] = (porEstado[estado] || 0) + 1
   }
 
-  const RANGOS_LABELS = ['07:00–09:59', '10:00–14:59', '15:00–17:59', '18:00–06:59']
+  const RANGOS_LABELS = ['06:00–08:59', '09:00–15:59', '16:00–17:59', '18:00–05:59']
 
   return NextResponse.json({
     total: ticketsArea.length,
