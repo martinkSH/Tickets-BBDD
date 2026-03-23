@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
+import SolicitantesAreas from '@/components/SolicitantesAreas'
 import type { Perfil } from '@/lib/types'
 import { TIPOS_TICKET } from '@/lib/types'
 
@@ -402,6 +403,14 @@ export default function SettingsPage() {
                 Agregar
               </button>
             </div>
+          </Section>
+
+          {/* Solicitantes y áreas */}
+          <Section title="🗂️ Solicitantes y áreas">
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Asigná cada solicitante a un área para que aparezca en las estadísticas por área. Los marcados con <span style={{ color: '#f59e0b' }}>●</span> no tienen área asignada.
+            </p>
+            <SolicitantesAreas />
           </Section>
 
           {/* Tipos de ticket */}
