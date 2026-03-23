@@ -46,7 +46,7 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
   )
 }
 
-const RANGOS_LABELS = ['07:00–09:59', '10:00–14:59', '15:00–17:59', '18:00–06:59']
+const RANGOS_LABELS = ['06:00–08:59', '09:00–15:59', '16:00–17:59', '18:00–05:59']
 
 export default function EstadisticasPage() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
