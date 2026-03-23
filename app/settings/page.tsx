@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import SolicitantesAreas from '@/components/SolicitantesAreas'
+import dynamic from 'next/dynamic'
+const SolicitantesAreas = dynamic(() => import('@/components/SolicitantesAreas'), { ssr: false })
 import type { Perfil } from '@/lib/types'
 import { TIPOS_TICKET } from '@/lib/types'
 
