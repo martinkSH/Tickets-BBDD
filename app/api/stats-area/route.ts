@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
   // ── Stats ────────────────────────────────────────────────────────────────
   const porSolicitante: Record<string, {
     total: number; resueltos: number; abiertos: number
-    rangos: number[]; sumaHoras: number; cantHoras: number
+    rangos: number[]; sumaHoras: number; cantHoras: number; dias?: number[]
   }> = {}
 
   const rangosArea = [0, 0, 0, 0] // 07-10, 10-15, 15-18, 18+
@@ -70,6 +70,15 @@ export async function GET(req: NextRequest) {
     (h: number) => h >= 18 || h < 6,
   ]
   const porTipo: Record<string, number> = {}
+  const diasArea = [
+    { label: 'Lunes',     total: 0 },
+    { label: 'Martes',    total: 0 },
+    { label: 'Miércoles', total: 0 },
+    { label: 'Jueves',    total: 0 },
+    { label: 'Viernes',   total: 0 },
+    { label: 'Sábado',    total: 0 },
+    { label: 'Domingo',   total: 0 },
+  ]
   const porEstado: Record<string, number> = {}
 
   for (const t of ticketsArea) {
@@ -90,6 +99,13 @@ export async function GET(req: NextRequest) {
     // Rangos por solicitante y total área
     const ri = rangoMatch.findIndex(fn => fn(h))
     if (ri >= 0) { rangosArea[ri]++; porSolicitante[mail].rangos[ri]++ }
+
+    // Por día
+    const dow = ts.getDay()
+    const diaIdx = dow === 0 ? 6 : dow - 1
+    diasArea[diaIdx].total++
+    if (!porSolicitante[mail].dias) porSolicitante[mail].dias = [0,0,0,0,0,0,0]
+    porSolicitante[mail].dias![diaIdx]++
 
     // Por tipo
     if (estado === 'Resuelto' && t.tipo_ticket) {
@@ -113,6 +129,7 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => b.total - a.total),
     rangos: RANGOS_LABELS.map((label, i) => ({ label, total: rangosArea[i] })),
+    dias: diasArea.map(d => ({ label: d.label, total: d.total })),
     porTipo: Object.entries(porTipo)
       .map(([tipo, total]) => ({ tipo, total }))
       .sort((a, b) => b.total - a.total),
