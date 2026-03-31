@@ -32,6 +32,7 @@ export default function Sidebar({ perfil }: Props) {
     { label: 'Nuevo ticket',      href: '/nuevo',       icon: <Icon d="M12 4v16m8-8H4" /> },
     { label: 'Carga Tarifarios',  href: '/tarifarios',  icon: <Icon d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /> },
     { label: 'Alta Proveedores',    href: '/proveedores',  icon: <Icon d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /> },
+    { label: 'Alta Clientes',        href: '/clientes',     icon: <Icon d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75M9 11a4 4 0 100-8 4 4 0 000 8z" /> },
   ]
   const analisis = [
     { label: 'Estadísticas', href: '/estadisticas', icon: <Icon d="M3 3v18h18M7 16l4-4 4 4 4-8" /> },
