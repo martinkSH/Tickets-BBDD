@@ -361,7 +361,7 @@ function TicketTooltip({ ticket: t, x, y }: { ticket: Ticket; x: number; y: numb
 
       {/* Descripción */}
       <p style={{ margin: '0 0 10px', fontSize: 13, color: '#374151', lineHeight: 1.5,
-        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'pre-wrap'
       }}>{t.descripcion}</p>
 
       {/* Detalles en grid */}
