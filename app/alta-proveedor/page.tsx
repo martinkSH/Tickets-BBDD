@@ -74,7 +74,18 @@ export default function AltaProveedorPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <img src="/say-hueque-icon.png" alt="Say Hueque" className="w-14 h-14 mx-auto mb-3" style={{ mixBlendMode: 'multiply' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid #c9a96e', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#c9a96e' }}>A</span>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#c9a96e', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Atlas</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Archive</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 10, color: '#94a3b8', letterSpacing: '0.05em' }}>Say Hueque</p>
+            </div>
+          </div>
           <h1 className="text-2xl font-bold text-slate-800">Alta de Proveedor</h1>
           <p className="text-slate-500 text-sm mt-1">Supplier Registration</p>
           <p className="text-slate-400 text-xs mt-3 max-w-md mx-auto">
