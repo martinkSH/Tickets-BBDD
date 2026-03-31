@@ -43,12 +43,12 @@ async function enviarMailNuevoProveedor(p: any, mails: string[]) {
         ${fila('Tel. emergencias', p.telefono_emergencias)}
       </table>
       ${p.datos_bancarios ? `<div style="padding:12px 14px;background:#f9fafb;border-top:1px solid #f0f0f0"><p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">Datos bancarios</p><p style="margin:0;font-size:13px;color:#374151">${esc(p.datos_bancarios)}</p></div>` : ''}
-      <p style="margin:16px 14px;color:#9ca3af;font-size:12px;">Say Hueque · Sistema de Gestión de Base de Datos</p>
+      <p style="margin:16px 14px;color:#9ca3af;font-size:12px;">Say Hueque · Atlas Archive de Base de Datos</p>
     </div>
   </div>`
 
   await transporter.sendMail({
-    from: `"Alta Proveedores" <${process.env.GMAIL_USER}>`,
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: mails.join(','),
     subject: `[Alta Proveedor] ${p.razon_social} — ${p.pais || ''}`.trim(),
     html,
@@ -159,12 +159,12 @@ async function autoAssignProveedor(supabase: any, proveedorId: string) {
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
     })
     await transporter.sendMail({
-      from: `"Alta Proveedores" <${process.env.GMAIL_USER}>`,
+      from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
       to: mejor.mail,
       subject: `[Alta asignada] ${prov.razon_social}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:13px;max-width:500px;">
         <div style="background:#1e3a5f;padding:16px 20px;border-radius:8px 8px 0 0;">
-          <p style="margin:0;color:#93c5fd;font-size:11px;text-transform:uppercase">Say Hueque · Alta Proveedor</p>
+          <p style="margin:0;color:#93c5fd;font-size:11px;text-transform:uppercase">Say Hueque · Atlas Archive</p>
           <h2 style="margin:6px 0 0;color:white;font-size:16px;">📋 Alta de proveedor asignada</h2>
         </div>
         <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:16px 20px;">
@@ -172,7 +172,7 @@ async function autoAssignProveedor(supabase: any, proveedorId: string) {
           <p><strong>Razón Social:</strong> ${esc(prov.razon_social)}</p>
           <p><strong>País:</strong> ${esc(prov.pais || '—')}</p>
           <p><strong>Mail:</strong> ${esc(prov.mail_contacto)}</p>
-          <p style="color:#9ca3af;font-size:12px;margin-top:16px">Say Hueque · Sistema de Gestión</p>
+          <p style="color:#9ca3af;font-size:12px;margin-top:16px">Say Hueque · Atlas Archive</p>
         </div>
       </div>`,
     })
