@@ -132,7 +132,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           {/* Descripción */}
           <div style={{ background: '#f9fafb', borderRadius: 10, padding: '14px 16px' }}>
             <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Descripción</p>
-            <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>{ticket.descripcion}</p>
+            <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{ticket.descripcion}</p>
           </div>
 
           {/* Detalles */}
