@@ -56,19 +56,25 @@ export default function Sidebar({ perfil }: Props) {
     <aside style={{ width: 'var(--sidebar-w)', background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
       className="fixed left-0 top-0 h-screen flex flex-col z-30 shrink-0">
 
-      {/* Header con logo */}
+      {/* Header Atlas Archive */}
       <div className="px-4 pt-5 pb-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <img
-            src="/say-hueque-icon.png"
-            alt="Say Hueque"
-            style={{ width: 36, height: 36, mixBlendMode: 'screen', flexShrink: 0 }}
-          />
-          <div style={{ minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'white', lineHeight: 1.3 }}>Sistema de Gestión de Base de Datos</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 7, flexShrink: 0,
+            border: '1px solid #c9a96e',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#c9a96e', letterSpacing: '0.05em' }}>A</span>
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#c9a96e', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Atlas</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'white', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Archive</span>
+            </div>
+            <p style={{ margin: 0, fontSize: 10, color: '#3d4460', letterSpacing: '0.03em' }}>Gestión de Base de Datos</p>
           </div>
         </div>
-        <p style={{ margin: 0, fontSize: 10, color: '#3d4460', letterSpacing: '0.02em' }}>developed by Martin Kravetz</p>
+        <p style={{ margin: 0, fontSize: 9, color: '#2a2e40', letterSpacing: '0.02em' }}>developed by Martin Kravetz</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col">
