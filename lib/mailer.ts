@@ -80,7 +80,7 @@ function template({
       ${description ? `
       <div style="margin-top:20px;padding-top:20px;border-top:1px solid #f0f0f0;">
         <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;">${descriptionLabel || 'Descripción'}</p>
-        <div style="background:#f9fafb;border-radius:8px;padding:14px;font-size:13px;color:#374151;line-height:1.6;">${description}</div>
+        <div style="background:#f9fafb;border-radius:8px;padding:14px;font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap">${(description||"").replace(/\n/g,"<br>")}</div>
       </div>
       ` : ''}
 
