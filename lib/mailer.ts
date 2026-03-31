@@ -142,7 +142,7 @@ export async function mailNuevoTicket(ticket: {
   })
 
   await transporter.sendMail({
-    from: `"Tickets BBDD" <${process.env.GMAIL_USER}>`,
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: destinatarios.join(','),
     subject: `[${ticket.numero}] Nuevo ticket · ${ticket.area_afectada}`,
     html,
@@ -186,7 +186,7 @@ export async function mailTicketAsignadoResponsable(ticket: {
   })
 
   await transporter.sendMail({
-    from: `"Tickets BBDD" <${process.env.GMAIL_USER}>`,
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: ticket.responsable_mail,
     subject: `[${ticket.numero}] Nuevo ticket asignado a vos`,
     html,
@@ -224,7 +224,7 @@ export async function mailTicketAsignadoSolicitante(ticket: {
   })
 
   await transporter.sendMail({
-    from: `"Tickets BBDD" <${process.env.GMAIL_USER}>`,
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: ticket.mail_solicitante,
     subject: `[${ticket.numero}] Tu ticket está siendo atendido por ${ticket.responsable_nombre}`,
     html,
@@ -265,7 +265,7 @@ export async function mailTicketResuelto(ticket: {
   })
 
   await transporter.sendMail({
-    from: `"Tickets BBDD" <${process.env.GMAIL_USER}>`,
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: ticket.mail_solicitante,
     subject: `[${ticket.numero}] Tu ticket fue resuelto`,
     html,
