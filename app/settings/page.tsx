@@ -294,6 +294,7 @@ export default function SettingsPage() {
       if (!session) { router.push('/login'); return }
       const { data: p } = await sb.from('perfiles').select('*').eq('id', session.user.id).single()
       if (!p) { router.push('/login'); return }
+      if (p.rol !== 'admin') { router.push('/dashboard'); return }
       setPerfil(p)
       const { data: u } = await sb.from('perfiles').select('*').order('nombre')
       setUsuarios(u || [])
