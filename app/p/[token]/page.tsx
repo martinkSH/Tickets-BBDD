@@ -18,6 +18,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
   const [proyecto, setProyecto] = useState<any>(null)
   const [colaborador, setColaborador] = useState<any>(null)
   const [externos, setExternos] = useState<any[]>([])
+  const [miembrosInt, setMiembrosInt] = useState<any[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [tareaModal, setTareaModal] = useState<any>(null)
@@ -34,9 +35,13 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
     const data = await res.json()
     setProyecto(data.proyecto)
     setColaborador(data.colaborador)
-    // Cargar externos para el dropdown de asignación
-    const extRes = await fetch(`/api/proyectos/externos?proyecto_id=${data.colaborador.proyecto_id}`)
+    // Cargar externos e internos para el dropdown de asignación
+    const [extRes, mbRes] = await Promise.all([
+      fetch(`/api/proyectos/externos?proyecto_id=${data.colaborador.proyecto_id}`),
+      fetch(`/api/proyectos/${data.colaborador.proyecto_id}/miembros`),
+    ])
     if (extRes.ok) setExternos(await extRes.json())
+    if (mbRes.ok) setMiembrosInt(await mbRes.json())
     setLoading(false)
   }
 
@@ -210,6 +215,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
           tarea={tareaModal}
           listas={proyecto.listas||[]}
           externos={externos}
+          miembrosInt={miembrosInt}
           colaborador={colaborador}
           token={params.token}
           onClose={() => setTareaModal(null)}
@@ -299,7 +305,7 @@ function NuevaTareaInline({ onCrear, onCancelar }: any) {
 }
 
 // ── Modal de tarea completo para externos ─────────────────────────────────
-function TareaModalExterno({ tarea: tareaInicial, listas, externos, colaborador, token, onClose, onUpdated, onDeleted }: any) {
+function TareaModalExterno({ tarea: tareaInicial, listas, externos, miembrosInt = [], colaborador, token, onClose, onUpdated, onDeleted }: any) {
   const [tarea, setTarea] = useState<any>(tareaInicial)
   const [nuevoComentario, setNuevoComentario] = useState('')
   const [nuevaSubtarea, setNuevaSubtarea] = useState('')
@@ -503,7 +509,12 @@ function TareaModalExterno({ tarea: tareaInicial, listas, externos, colaborador,
                 }}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', background:'white' }}>
                 <option value="">Sin asignar</option>
-                {externos.filter((e: any) => e.activo).map((e: any) => <option key={e.id} value={'ext:'+e.id}>{e.nombre}</option>)}
+                {miembrosInt.length > 0 && <optgroup label="── Equipo interno">
+                  {miembrosInt.map((m: any) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </optgroup>}
+                {externos.filter((e: any) => e.activo).length > 0 && <optgroup label="── Colaboradores externos">
+                  {externos.filter((e: any) => e.activo).map((e: any) => <option key={e.id} value={'ext:'+e.id}>{e.nombre}</option>)}
+                </optgroup>}
               </select>
               {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
                 const a = tarea.asignado || (tarea as any).asignado_externo
