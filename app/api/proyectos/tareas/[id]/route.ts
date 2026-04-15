@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const supabase = createClient()
   const { data, error } = await supabase
     .from('proyectos_tareas')
-    .select('*, asignado:asignado_id(nombre,mail), subtareas:proyectos_subtareas(*), comentarios:proyectos_comentarios(*, autor:autor_id(nombre,mail))')
+    .select('*, asignado:asignado_id(nombre,mail), asignado_externo:asignado_externo_id(id,nombre,mail), subtareas:proyectos_subtareas(*), comentarios:proyectos_comentarios(*, autor:autor_id(nombre,mail))') 
     .eq('id', params.id).single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .from('proyectos_tareas')
     .update(updates)
     .eq('id', params.id)
-    .select('*, asignado:asignado_id(nombre,mail), lista:lista_id(nombre), proyecto:proyecto_id(nombre)')
+    .select('*, asignado:asignado_id(nombre,mail), asignado_externo:asignado_externo_id(id,nombre,mail), lista:lista_id(nombre), proyecto:proyecto_id(nombre)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
