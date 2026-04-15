@@ -787,7 +787,6 @@ function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: ()
   const [externos, setExternos] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
 
   useEffect(() => {
     setMounted(true)
@@ -821,10 +820,14 @@ function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: ()
     setExternos(e => e.filter((x: any) => x.id !== id))
   }
 
+  const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
+
   const content = (
     <div ref={overlayRef} onClick={handleOverlayClick}
       style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:500, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', padding:'28px' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background:'white', borderRadius:16, width:'100%', maxWidth:500, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', padding:'28px' }}>
+
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
           <div>
             <h2 style={{ margin:0, fontSize:17, fontWeight:700 }}>Invitar colaborador externo</h2>
@@ -840,22 +843,22 @@ function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: ()
             onKeyDown={e => { if (e.key==='Enter') invitar() }}
             style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px', fontSize:13, outline:'none' }} />
           <button onClick={invitar} disabled={enviando || !nombre.trim() || !mail.trim()}
-            style={{ background: enviando?'#9ca3af':'#16a34a', color:'white', border:'none', borderRadius:8, padding:'10px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
-            {enviando ? 'Enviando invitación…' : '✉ Enviar invitación por mail'}
+            style={{ background:enviando?'#9ca3af':'#16a34a', color:'white', border:'none', borderRadius:8, padding:'10px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            {enviando ? 'Enviando…' : '✉ Enviar invitación por mail'}
           </button>
         </div>
 
         {enviados.length > 0 && (
           <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:10, padding:14, marginBottom:16 }}>
-            <p style={{ margin:'0 0 8px', fontSize:12, fontWeight:700, color:'#16a34a' }}>Invitaciones enviadas en esta sesión:</p>
+            <p style={{ margin:'0 0 8px', fontSize:12, fontWeight:700, color:'#16a34a' }}>✓ Invitaciones enviadas:</p>
             {enviados.map((e, i) => (
-              <div key={i} style={{ fontSize:12, color:'#374151', marginBottom:4 }}>
+              <div key={i} style={{ fontSize:12, color:'#374151', marginBottom:6 }}>
                 <strong>{e.nombre}</strong> ({e.mail})
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
-                  <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace', wordBreak:'break-all' }}>{e.link}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3 }}>
+                  <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace', wordBreak:'break-all', flex:1 }}>{e.link}</span>
                   <button onClick={() => navigator.clipboard.writeText(e.link)}
-                    style={{ background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:5, padding:'2px 6px', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
-                    Copiar link
+                    style={{ background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:5, padding:'2px 8px', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
+                    Copiar
                   </button>
                 </div>
               </div>
@@ -865,15 +868,15 @@ function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: ()
 
         {externos.filter((e: any) => e.activo).length > 0 && (
           <div>
-            <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6b7280', textTransform:'uppercase' }}>Colaboradores actuales</p>
+            <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6b7280', textTransform:'uppercase' }}>Colaboradores activos</p>
             {externos.filter((e: any) => e.activo).map((e: any) => (
               <div key={e.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f0f0f0' }}>
                 <div>
                   <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#374151' }}>{e.nombre}</p>
                   <p style={{ margin:0, fontSize:12, color:'#9ca3af' }}>{e.mail}</p>
                 </div>
-                <div style={{ display:'flex', gap:6' }}>
-                  <button onClick={() => navigator.clipboard.writeText(`${APP_URL}/p/${e.token}`)}
+                <div style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => navigator.clipboard.writeText(APP_URL + '/p/' + e.token)}
                     style={{ background:'#f3f4f6', border:'none', borderRadius:6, padding:'4px 10px', fontSize:11, cursor:'pointer', color:'#374151' }}>
                     Copiar link
                   </button>
