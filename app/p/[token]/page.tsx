@@ -174,11 +174,12 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
                         {subtTotal > 0 && <span style={{ color:'#6b7280' }}>✓ {subtComp}/{subtTotal}</span>}
                         {tarea.fecha_vencimiento && <span style={{ color:vencida?'#dc2626':'#9ca3af' }}>📅 {formatDate(tarea.fecha_vencimiento)}</span>}
                       </div>
-                      {tarea.asignado && (
-                        <div title={tarea.asignado.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-                          {tarea.asignado.nombre.charAt(0)}
+                      {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
+                        const a = tarea.asignado || (tarea as any).asignado_externo
+                        return <div title={a.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+                          {a.nombre.charAt(0)}
                         </div>
-                      )}
+                      })()}
                     </div>
                   </div>
                 )
@@ -431,19 +432,34 @@ function TareaModalExterno({ tarea: tareaInicial, listas, externos, colaborador,
 
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Asignado a</label>
-              <select value={tarea.asignado_id||''} onChange={e => guardar({ asignado_id: e.target.value||undefined, asignado_a: e.target.options[e.target.selectedIndex].text })}
+              <select
+                value={(tarea as any).asignado_externo?.id ? 'ext:'+(tarea as any).asignado_externo.id : tarea.asignado_id||''}
+                onChange={e => {
+                  const val = e.target.value
+                  if (!val) { guardar({ asignado_id: undefined, asignado_externo_id: null, asignado_externo_nombre: null }); return }
+                  if (val.startsWith('ext:')) {
+                    const extId = val.replace('ext:','')
+                    const ext = externos.find((x: any) => x.id === extId)
+                    if (ext) guardar({ asignado_externo_id: ext.id, asignado_externo_nombre: ext.nombre, asignado_a: ext.mail, asignado_id: undefined })
+                  } else {
+                    guardar({ asignado_id: val, asignado_externo_id: null, asignado_externo_nombre: null })
+                  }
+                }}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', background:'white' }}>
                 <option value="">Sin asignar</option>
-                {externos.filter((e: any) => e.activo).map((e: any) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                {externos.filter((e: any) => e.activo).map((e: any) => <option key={e.id} value={'ext:'+e.id}>{e.nombre}</option>)}
               </select>
-              {tarea.asignado && (
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
-                  <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-                    {tarea.asignado.nombre.charAt(0)}
+              {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
+                const a = tarea.asignado || (tarea as any).asignado_externo
+                return (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+                    <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+                      {a.nombre.charAt(0)}
+                    </div>
+                    <span style={{ fontSize:12, color:'#374151' }}>{a.nombre}</span>
                   </div>
-                  <span style={{ fontSize:12, color:'#374151' }}>{tarea.asignado.nombre}</span>
-                </div>
-              )}
+                )
+              })()}
             </div>
 
             <div>
