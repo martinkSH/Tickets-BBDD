@@ -7,10 +7,28 @@ function esc(s: string) { return String(s||'').replace(/&/g,'&amp;').replace(/</
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const body = await req.json()
-  const { sendMail, responsable_mail, responsable_nombre, prevResponsableId, ...updates } = body
+  const { sendMail, responsable_mail, responsable_nombre, prevResponsableId, ...rest } = body
 
-  if (updates.estado === 'Resuelto' && !updates.fecha_resolucion) {
+  // Solo los campos editables — igual que tickets BBDD
+  const updates: Record<string, any> = {}
+  if (rest.estado !== undefined)                updates.estado = rest.estado
+  if (rest.responsable_id !== undefined)         updates.responsable_id = rest.responsable_id || null
+  if (rest.comentario_asignacion !== undefined)  updates.comentario_asignacion = rest.comentario_asignacion
+  if (rest.comentario_solucion !== undefined)    updates.comentario_solucion = rest.comentario_solucion
+  if (rest.tipo_ticket !== undefined)            updates.tipo_ticket = rest.tipo_ticket
+
+  // Auto estado Asignado al asignar responsable
+  if (updates.responsable_id && !updates.estado) updates.estado = 'Asignado'
+  if (updates.responsable_id && updates.estado === 'Recibido') updates.estado = 'Asignado'
+
+  // Fecha resolución
+  if (updates.estado === 'Resuelto' && !rest.fecha_resolucion) {
     updates.fecha_resolucion = new Date().toISOString()
+  }
+
+  // Fecha asignación
+  if (updates.responsable_id && updates.responsable_id !== prevResponsableId) {
+    updates.assigned_at = new Date().toISOString()
   }
 
   const { data, error } = await supabase.from('tickets_it').update(updates).eq('id', params.id).select('*').single()
