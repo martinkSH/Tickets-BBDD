@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import type { Perfil } from '@/lib/types'
 import AutoRefresh from './AutoRefresh'
@@ -251,6 +252,10 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
   saving: boolean; onClose: ()=>void; onSave: (t:TicketIT, extra?:Record<string,any>)=>void
 }) {
   const [form, setForm] = useState({...ticket})
+  const [mounted, setMounted] = useState(false)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { setMounted(true) }, [])
+  const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
   const set = (k: keyof TicketIT) => (e: React.ChangeEvent<HTMLSelectElement|HTMLTextAreaElement|HTMLInputElement>) =>
     setForm(f => ({...f, [k]: e.target.value}))
 
@@ -274,10 +279,11 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
     })
   }
 
-  return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, overflowY:'scroll', background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', WebkitOverflowScrolling:'touch' }}>
-      <div style={{ display:'flex', justifyContent:'center', padding:'48px 16px 64px', minHeight:'100%', boxSizing:'border-box' }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:680, boxShadow:'0 20px 60px rgba(0,0,0,0.25)', height:'fit-content', alignSelf:'flex-start' }}>
+  const content = (
+    <div ref={overlayRef} onClick={handleOverlayClick}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', zIndex:9999, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
+      <div style={{ background:'white', borderRadius:16, width:'100%', maxWidth:680, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', marginBottom:40 }}
+        onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding:'18px 24px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div>
@@ -368,7 +374,7 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
           </button>
         </div>
       </div>
-      </div>
     </div>
   )
+  return mounted ? createPortal(content, document.body) : null
 }
