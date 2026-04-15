@@ -82,11 +82,15 @@ export default function Sidebar({ perfil }: Props) {
         <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Gestión</p>
         <div className="space-y-0.5 mb-5">{gestion.map(i => <NavLink key={i.href} {...i} />)}</div>
 
-        <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Análisis</p>
-        <div className="space-y-0.5 mb-5">{analisis.map(i => <NavLink key={i.href} {...i} />)}</div>
+        {perfil.rol === 'admin' && (<>
+          <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Análisis</p>
+          <div className="space-y-0.5 mb-5">{analisis.map(i => <NavLink key={i.href} {...i} />)}</div>
+        </>)}
 
-        <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Sistema</p>
-        <div className="space-y-0.5">{config.map(i => <NavLink key={i.href} {...i} />)}</div>
+        {perfil.rol === 'admin' && (<>
+          <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Sistema</p>
+          <div className="space-y-0.5">{config.map(i => <NavLink key={i.href} {...i} />)}</div>
+        </>)}
       </nav>
 
       <div className="px-3 py-4 border-t" style={{ borderColor: 'var(--sidebar-border)' }}>
