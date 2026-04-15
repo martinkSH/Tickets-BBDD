@@ -17,7 +17,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
-  const { prevAsignadoId, ...body } = await req.json()
+  const { prevAsignadoId, externosProyecto, ...body } = await req.json()
+
+  // Si asignado_id corresponde a un externo (no está en perfiles), usar asignado_a en vez
+  if (body.asignado_id && externosProyecto?.length) {
+    const externo = externosProyecto.find((e: any) => e.id === body.asignado_id)
+    if (externo) {
+      body.asignado_a = externo.mail
+      body.asignado_id = null  // los externos no tienen perfil_id, guardamos solo el mail
+    }
+  }
 
   const { data: tarea, error } = await supabase
     .from('proyectos_tareas')
@@ -27,12 +36,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Mail si cambió el asignado
-  if (body.asignado_id && body.asignado_id !== prevAsignadoId && tarea.asignado?.mail) {
+  // Para externos, el mail está en asignado_a; para internos, en asignado.mail
+  const mailAsignado = tarea.asignado?.mail || body.asignado_a
+  if ((body.asignado_id || body.asignado_a) && body.asignado_id !== prevAsignadoId && mailAsignado) {
     try {
       const transporter = createTransport({ service:'gmail', auth:{ user:process.env.GMAIL_USER, pass:process.env.GMAIL_APP_PASSWORD }})
       await transporter.sendMail({
         from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
-        to: tarea.asignado.mail,
+        to: mailAsignado,
         subject: `[Proyecto] Tarea asignada: ${tarea.titulo}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:560px">
           <div style="background:#0a0a0a;padding:20px 24px;border-radius:8px 8px 0 0">
