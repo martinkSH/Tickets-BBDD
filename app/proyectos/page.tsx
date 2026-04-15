@@ -54,6 +54,7 @@ export default function ProyectosPage() {
   const [tareaModal, setTareaModal] = useState<Tarea|null>(null)
   const [nuevaTareaLista, setNuevaTareaLista] = useState<string|null>(null)
   const [showNuevoProyecto, setShowNuevoProyecto] = useState(false)
+  const [showInvitar, setShowInvitar] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -139,6 +140,7 @@ export default function ProyectosPage() {
             onTareaClick={setTareaModal}
             onVolver={() => { setView('home'); cargarDatos() }}
             onRecargar={recargarProyecto}
+            onInvitar={() => setShowInvitar(true)}
             perfil={perfil}
           />
         ) : null}
@@ -149,6 +151,13 @@ export default function ProyectosPage() {
           espacios={espacios}
           onClose={() => setShowNuevoProyecto(false)}
           onCreado={async () => { setShowNuevoProyecto(false); await cargarDatos() }}
+        />
+      )}
+
+      {showInvitar && proyectoActivo && (
+        <InvitarExternoModal
+          proyecto={proyectoActivo}
+          onClose={() => setShowInvitar(false)}
         />
       )}
 
@@ -262,7 +271,7 @@ function ProyectoCard({ proyecto, onClick }: { proyecto: Proyecto; onClick: () =
 }
 
 // ── Kanban View ───────────────────────────────────────────────────────────
-function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, perfil }: any) {
+function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, onInvitar, perfil }: any) {
   const [dragTarea, setDragTarea] = useState<string|null>(null)
   const [dragOver, setDragOver] = useState<string|null>(null)
   const [nuevaTareaTexto, setNuevaTareaTexto] = useState('')
@@ -308,6 +317,10 @@ function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCr
           ))}
         </div>
         <button onClick={onRecargar} style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#6b7280', fontSize:12 }}>↻</button>
+        <button onClick={() => onInvitar()} style={{ display:'flex', alignItems:'center', gap:5, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'6px 14px', cursor:'pointer', color:'#16a34a', fontSize:12, fontWeight:600 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Invitar
+        </button>
       </div>
 
       {/* Kanban board */}
@@ -621,7 +634,7 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, onCl
             {/* Asignado */}
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Asignado a</label>
-              <select value={tarea.asignado_id||''} onChange={e => guardar({ asignado_id: e.target.value||null, asignado_a: e.target.options[e.target.selectedIndex].text })}
+              <select value={tarea.asignado_id||''} onChange={e => guardar({ asignado_id: e.target.value||undefined, asignado_a: e.target.options[e.target.selectedIndex].text })}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', background:'white' }}>
                 <option value="">Sin asignar</option>
                 {miembros.map((m: any) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
@@ -640,7 +653,7 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, onCl
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Fecha de vencimiento</label>
               <input type="date" value={tarea.fecha_vencimiento||''}
-                onChange={e => guardar({ fecha_vencimiento: e.target.value||null })}
+                onChange={e => guardar({ fecha_vencimiento: e.target.value||undefined })}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', boxSizing:'border-box', color: isVencida(tarea.fecha_vencimiento)?'#dc2626':'#374151' }} />
             </div>
 
@@ -759,6 +772,120 @@ function NuevoProyectoModal({ espacios, onClose, onCreado }: any) {
             {saving?'Creando…':'Crear proyecto'}
           </button>
         </div>
+      </div>
+    </div>
+  )
+  return mounted ? createPortal(content, document.body) : null
+}
+
+// ── Invitar Externo Modal ─────────────────────────────────────────────────
+function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: () => void }) {
+  const [nombre, setNombre] = useState('')
+  const [mail, setMail] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [enviados, setEnviados] = useState<any[]>([])
+  const [externos, setExternos] = useState<any[]>([])
+  const [mounted, setMounted] = useState(false)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
+
+  useEffect(() => {
+    setMounted(true)
+    fetch('/api/proyectos/externos?proyecto_id=' + proyecto.id)
+      .then(r => r.json()).then(data => setExternos(Array.isArray(data) ? data : []))
+  }, [])
+
+  const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
+
+  const invitar = async () => {
+    if (!nombre.trim() || !mail.trim()) return
+    setEnviando(true)
+    const res = await fetch('/api/proyectos/externos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proyecto_id: proyecto.id, nombre: nombre.trim(), mail: mail.trim() }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      setEnviados(e => [...e, { nombre: nombre.trim(), mail: mail.trim(), link: data.link }])
+      setExternos(e => [...e, data.externo])
+      setNombre(''); setMail('')
+    }
+    setEnviando(false)
+  }
+
+  const revocar = async (id: string) => {
+    await fetch('/api/proyectos/externos', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setExternos(e => e.filter((x: any) => x.id !== id))
+  }
+
+  const content = (
+    <div ref={overlayRef} onClick={handleOverlayClick}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:500, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', padding:'28px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+          <div>
+            <h2 style={{ margin:0, fontSize:17, fontWeight:700 }}>Invitar colaborador externo</h2>
+            <p style={{ margin:'4px 0 0', fontSize:13, color:'#9ca3af' }}>Proyecto: {proyecto.nombre}</p>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:20 }}>×</button>
+        </div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:16 }}>
+          <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo"
+            style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px', fontSize:13, outline:'none' }} />
+          <input type="email" value={mail} onChange={e => setMail(e.target.value)} placeholder="Mail del colaborador"
+            onKeyDown={e => { if (e.key==='Enter') invitar() }}
+            style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px', fontSize:13, outline:'none' }} />
+          <button onClick={invitar} disabled={enviando || !nombre.trim() || !mail.trim()}
+            style={{ background: enviando?'#9ca3af':'#16a34a', color:'white', border:'none', borderRadius:8, padding:'10px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            {enviando ? 'Enviando invitación…' : '✉ Enviar invitación por mail'}
+          </button>
+        </div>
+
+        {enviados.length > 0 && (
+          <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:10, padding:14, marginBottom:16 }}>
+            <p style={{ margin:'0 0 8px', fontSize:12, fontWeight:700, color:'#16a34a' }}>Invitaciones enviadas en esta sesión:</p>
+            {enviados.map((e, i) => (
+              <div key={i} style={{ fontSize:12, color:'#374151', marginBottom:4 }}>
+                <strong>{e.nombre}</strong> ({e.mail})
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
+                  <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace', wordBreak:'break-all' }}>{e.link}</span>
+                  <button onClick={() => navigator.clipboard.writeText(e.link)}
+                    style={{ background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:5, padding:'2px 6px', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
+                    Copiar link
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {externos.filter((e: any) => e.activo).length > 0 && (
+          <div>
+            <p style={{ margin:'0 0 10px', fontSize:12, fontWeight:700, color:'#6b7280', textTransform:'uppercase' }}>Colaboradores actuales</p>
+            {externos.filter((e: any) => e.activo).map((e: any) => (
+              <div key={e.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f0f0f0' }}>
+                <div>
+                  <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#374151' }}>{e.nombre}</p>
+                  <p style={{ margin:0, fontSize:12, color:'#9ca3af' }}>{e.mail}</p>
+                </div>
+                <div style={{ display:'flex', gap:6' }}>
+                  <button onClick={() => navigator.clipboard.writeText(`${APP_URL}/p/${e.token}`)}
+                    style={{ background:'#f3f4f6', border:'none', borderRadius:6, padding:'4px 10px', fontSize:11, cursor:'pointer', color:'#374151' }}>
+                    Copiar link
+                  </button>
+                  <button onClick={() => revocar(e.id)}
+                    style={{ background:'none', border:'1px solid #fecaca', borderRadius:6, padding:'4px 10px', fontSize:11, cursor:'pointer', color:'#dc2626' }}>
+                    Revocar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
