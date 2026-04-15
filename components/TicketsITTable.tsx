@@ -275,9 +275,9 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
   }
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(2px)', zIndex:9999, overflowY:'auto' }}>
-      <div style={{ minHeight:'100%', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'32px 16px' }}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:680, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', marginBottom:32, flexShrink:0 }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:9999, overflowY:'scroll', background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', WebkitOverflowScrolling:'touch' }}>
+      <div style={{ display:'flex', justifyContent:'center', padding:'48px 16px 64px', minHeight:'100%', boxSizing:'border-box' }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:680, boxShadow:'0 20px 60px rgba(0,0,0,0.25)', height:'fit-content', alignSelf:'flex-start' }}>
         {/* Header */}
         <div style={{ padding:'18px 24px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div>
