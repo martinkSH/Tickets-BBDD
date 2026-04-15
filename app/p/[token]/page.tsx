@@ -25,6 +25,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
   const [nuevaTareaLista, setNuevaTareaLista] = useState<string|null>(null)
   const [dragTarea, setDragTarea] = useState<string|null>(null)
   const [dragOver, setDragOver] = useState<string|null>(null)
+  const [showInvitar, setShowInvitar] = useState(false)
 
   useEffect(() => { cargar() }, [])
 
@@ -129,6 +130,10 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
               <div style={{ width:`${progreso}%`, height:'100%', background:'#16a34a', borderRadius:3 }} />
             </div>
             <span style={{ fontSize:12, fontWeight:600, color:'#16a34a' }}>{progreso}%</span>
+            <button onClick={() => setShowInvitar(true)}
+              style={{ display:'flex', alignItems:'center', gap:5, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:7, padding:'5px 12px', cursor:'pointer', color:'#16a34a', fontSize:12, fontWeight:600 }}>
+              + Invitar
+            </button>
             <button onClick={recargar} style={{ background:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:7, padding:'5px 10px', cursor:'pointer', color:'#6b7280', fontSize:12 }}>↻</button>
           </div>
         </div>
@@ -208,6 +213,19 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
           </div>
         </div>
       </div>
+
+      {showInvitar && colaborador && (
+        <InvitarExternoPublico
+          proyectoId={colaborador.proyecto_id}
+          proyectoNombre={proyecto.nombre}
+          token={params.token}
+          onClose={() => setShowInvitar(false)}
+          onInvitado={async () => {
+            const extRes = await fetch(`/api/proyectos/externos?proyecto_id=${colaborador.proyecto_id}`)
+            if (extRes.ok) setExternos(await extRes.json())
+          }}
+        />
+      )}
 
       {/* Modal de tarea */}
       {tareaModal && (
@@ -563,6 +581,72 @@ function TareaModalExterno({ tarea: tareaInicial, listas, externos, miembrosInt 
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+  return mounted ? createPortal(content, document.body) : null
+}
+
+// ── Invitar desde vista pública ───────────────────────────────────────────
+function InvitarExternoPublico({ proyectoId, proyectoNombre, token, onClose, onInvitado }: any) {
+  const [nombre, setNombre] = useState('')
+  const [mail, setMail] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const [enviados, setEnviados] = useState<any[]>([])
+  const [mounted, setMounted] = useState(false)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => setMounted(true), [])
+  const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
+
+  const invitar = async () => {
+    if (!nombre.trim() || !mail.trim()) return
+    setEnviando(true)
+    const res = await fetch('/api/proyectos/externos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proyecto_id: proyectoId, nombre: nombre.trim(), mail: mail.trim(), token_invitador: token }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      setEnviados(e => [...e, { nombre: nombre.trim(), mail: mail.trim(), link: data.link }])
+      setNombre(''); setMail('')
+      onInvitado()
+    }
+    setEnviando(false)
+  }
+
+  const content = (
+    <div ref={overlayRef} onClick={handleOverlayClick}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background:'white', borderRadius:16, width:'100%', maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', padding:'28px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+          <div>
+            <h2 style={{ margin:0, fontSize:17, fontWeight:700 }}>Invitar colaborador</h2>
+            <p style={{ margin:'4px 0 0', fontSize:13, color:'#9ca3af' }}>{proyectoNombre}</p>
+          </div>
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:20 }}>×</button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:16 }}>
+          <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo"
+            style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px', fontSize:13, outline:'none' }} />
+          <input type="email" value={mail} onChange={e => setMail(e.target.value)} placeholder="Mail"
+            onKeyDown={e => { if (e.key==='Enter') invitar() }}
+            style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'9px 12px', fontSize:13, outline:'none' }} />
+          <button onClick={invitar} disabled={enviando || !nombre.trim() || !mail.trim()}
+            style={{ background:enviando?'#9ca3af':'#16a34a', color:'white', border:'none', borderRadius:8, padding:'10px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            {enviando ? 'Enviando…' : '✉ Enviar invitación'}
+          </button>
+        </div>
+        {enviados.map((e, i) => (
+          <div key={i} style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:12, marginBottom:8 }}>
+            <p style={{ margin:'0 0 4px', fontSize:13, fontWeight:600 }}>✓ {e.nombre} ({e.mail})</p>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.link}</span>
+              <button onClick={() => navigator.clipboard.writeText(e.link)}
+                style={{ background:'#e0f2fe', color:'#0284c7', border:'none', borderRadius:5, padding:'2px 8px', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>Copiar</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
