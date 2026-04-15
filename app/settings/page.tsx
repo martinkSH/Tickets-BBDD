@@ -256,6 +256,8 @@ export default function SettingsPage() {
   const [estadosExtra, setEstadosExtra] = useState<EstadoExtra[]>([])
   const [alertaDestinatarios, setAlertaDestinatarios] = useState<string[]>(['tarifas@sayhueque.com'])
   const [nuMailAlerta, setNuMailAlerta] = useState('')
+  const [alertaITDestinatarios, setAlertaITDestinatarios] = useState<string[]>([])
+  const [nuMailAlertaIT, setNuMailAlertaIT] = useState('')
   const [tarifDestinatarios, setTarifDestinatarios] = useState<{mail:string;area:string}[]>([])
   const [nuTarifMail, setNuTarifMail] = useState('')
   const [nuTarifArea, setNuTarifArea] = useState('Todas')
@@ -311,6 +313,8 @@ export default function SettingsPage() {
         if (alertaSetting?.value?.length) setAlertaDestinatarios(alertaSetting.value)
         const tarifSetting = settings.find((s: any) => s.key === 'tarifarios_destinatarios')
         if (tarifSetting?.value?.length) setTarifDestinatarios(tarifSetting.value)
+        const alertaITSetting = settings.find((s: any) => s.key === 'alerta_it_destinatarios')
+        if (alertaITSetting?.value?.length) setAlertaITDestinatarios(alertaITSetting.value)
       }
       setLoading(false)
     }
@@ -402,6 +406,19 @@ export default function SettingsPage() {
     const nuevos = alertaDestinatarios.filter(m => m !== mail)
     setAlertaDestinatarios(nuevos)
     await saveSetting('alerta_destinatarios', nuevos)
+  }
+
+  const agregarDestinatarioIT = async () => {
+    if (!nuMailAlertaIT.trim() || alertaITDestinatarios.includes(nuMailAlertaIT.trim())) return
+    const nuevos = [...alertaITDestinatarios, nuMailAlertaIT.trim()]
+    setAlertaITDestinatarios(nuevos); setNuMailAlertaIT('')
+    await saveSetting('alerta_it_destinatarios', nuevos)
+  }
+
+  const eliminarDestinatarioIT = async (mail: string) => {
+    const nuevos = alertaITDestinatarios.filter(m => m !== mail)
+    setAlertaITDestinatarios(nuevos)
+    await saveSetting('alerta_it_destinatarios', nuevos)
   }
 
   if (!perfil) return null
@@ -570,6 +587,30 @@ export default function SettingsPage() {
               </button>
             </div>
             <p style={{ margin: '10px 0 0', fontSize: 12, color: '#9ca3af' }}>Mínimo 1 destinatario requerido.</p>
+          </Section>
+
+          {/* Alertas de nuevo ticket IT */}
+          <Section title="🖥️ Alertas de nuevo ticket IT">
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+              Estos mails reciben una notificación cada vez que se crea un ticket IT nuevo.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {alertaITDestinatarios.map(m => (
+                <Tag key={m} label={m} onRemove={alertaITDestinatarios.length > 1 ? () => eliminarDestinatarioIT(m) : undefined} />
+              ))}
+              {alertaITDestinatarios.length === 0 && <p style={{ fontSize: 13, color: '#9ca3af', margin: 0 }}>Sin destinatarios configurados</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input value={nuMailAlertaIT} onChange={e => setNuMailAlertaIT(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') agregarDestinatarioIT() }}
+                placeholder="nuevo@sayhueque.com"
+                type="email"
+                style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, outline: 'none' }} />
+              <button onClick={agregarDestinatarioIT}
+                style={{ background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Agregar
+              </button>
+            </div>
           </Section>
 
           {/* Destinatarios Tarifarios */}
