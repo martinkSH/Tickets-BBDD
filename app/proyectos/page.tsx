@@ -422,11 +422,12 @@ function TareaCard({ tarea, onDragStart, onDragEnd, onClick }: { tarea: Tarea; o
             </span>
           )}
         </div>
-        {tarea.asignado && (
-          <div title={tarea.asignado.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-            {tarea.asignado.nombre.charAt(0)}
+        {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
+          const a = tarea.asignado || (tarea as any).asignado_externo
+          return <div title={a.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+            {a.nombre.charAt(0)}
           </div>
-        )}
+        })()}
       </div>
     </div>
   )
@@ -641,7 +642,7 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Asignado a</label>
               <select
-                value={(tarea as any).asignado_externo_id ? 'ext:'+((tarea as any).asignado_externo_id) : tarea.asignado_id||''}
+                value={(tarea as any).asignado_externo?.id ? 'ext:'+((tarea as any).asignado_externo.id) : tarea.asignado_id||''}
                 onChange={e => {
                   const val = e.target.value
                   if (!val) { guardar({ asignado_id: undefined, asignado_a: undefined }); return }
@@ -662,15 +663,19 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
                   {externosProyecto.map((e: any) => <option key={e.id} value={'ext:'+e.id}>{e.nombre} (externo)</option>)}
                 </optgroup>}
               </select>
-              {(tarea.asignado || (tarea as any).asignado_externo_nombre) && (
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
-                  <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre||'?'), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-                    {(tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre||'?').charAt(0)}
+              {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
+                const a = tarea.asignado || (tarea as any).asignado_externo
+                const esExterno = !!(tarea as any).asignado_externo
+                return (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
+                    <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+                      {a.nombre.charAt(0)}
+                    </div>
+                    <span style={{ fontSize:12, color:'#374151' }}>{a.nombre}</span>
+                    {esExterno && <span style={{ fontSize:10, background:'#f0fdf4', color:'#16a34a', borderRadius:4, padding:'1px 5px' }}>externo</span>}
                   </div>
-                  <span style={{ fontSize:12, color:'#374151' }}>{tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre}</span>
-                  {(tarea as any).asignado_externo_nombre && <span style={{ fontSize:10, color:'#9ca3af' }}>(externo)</span>}
-                </div>
-              )}
+                )
+              })()}
             </div>
 
             {/* Fecha vencimiento */}
