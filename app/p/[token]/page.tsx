@@ -99,7 +99,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
             <span style={{ fontSize:12, fontWeight:700, color:'#c9a96e', letterSpacing:'0.1em', textTransform:'uppercase' }}>Atlas</span>
             <span style={{ fontSize:12, fontWeight:700, color:'white', letterSpacing:'0.1em', textTransform:'uppercase' }}>Archive</span>
           </div>
-          <span style={{ color:'#333', fontSize:13', margin:'0 4px' }}>·</span>
+          <span style={{ color:'#333', fontSize:13, margin:'0 4px' }}>·</span>
           <span style={{ color:'#555', fontSize:13 }}>{proyecto.nombre}</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
