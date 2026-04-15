@@ -27,13 +27,15 @@ interface Props {
 }
 
 const ESTADOS = ['Recibido','Asignado','Pendiente','Resuelto']
-const ESTADO_CFG: Record<string,{bg:string;color:string;dot:string}> = {
+const SISTEMAS = ['Tourplan','Pythagoras/Bazar','Backend B2C','Vamoos','Otro']
+
+const EST_CFG: Record<string,{bg:string;color:string;dot:string}> = {
   Recibido:  { bg:'bg-slate-100',   color:'text-slate-600',   dot:'bg-slate-400'   },
   Asignado:  { bg:'bg-orange-100',  color:'text-orange-700',  dot:'bg-orange-500'  },
   Pendiente: { bg:'bg-purple-100',  color:'text-purple-700',  dot:'bg-purple-500'  },
   Resuelto:  { bg:'bg-emerald-100', color:'text-emerald-800', dot:'bg-emerald-600' },
 }
-const SISTEMAS = ['Tourplan','Pythagoras/Bazar','Backend B2C','Vamoos','Otro']
+
 const AVATAR_COLORS = ['#4f6ef7','#7c3aed','#0891b2','#059669','#d97706','#dc2626','#db2777','#65a30d']
 function avatarColor(name: string) { let h=0; for (const c of name) h=(h*31+c.charCodeAt(0))%AVATAR_COLORS.length; return AVATAR_COLORS[h] }
 function cx(...c: (string|false|null|undefined)[]) { return c.filter(Boolean).join(' ') }
@@ -51,13 +53,12 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
   const hoverTimer = useRef<NodeJS.Timeout>()
   const originalResp = useRef<string|undefined>(undefined)
   const totalPages = Math.ceil(totalCount/pageSize)
-  const basePath = '/tickets-it'
 
   const buildUrl = (params: Record<string,string|undefined>) => {
     const base = new URLSearchParams()
     const merged = { ...filters, page:'0', ...params }
     Object.entries(merged).forEach(([k,v]) => { if (v) base.set(k,v) })
-    return basePath + '?' + base.toString()
+    return '/tickets-it?' + base.toString()
   }
 
   const handleSave = async (t: TicketIT, extra: Record<string,any> = {}) => {
@@ -86,26 +87,25 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
         <div>
           <h1 style={{ margin:0, fontSize:24, fontWeight:700, color:'#111827' }}>Tickets IT</h1>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
-            <p style={{ margin:0, fontSize:13, color:'#9ca3af' }}>{totalCount.toLocaleString()} tickets · mostrando {page*pageSize+1}–{Math.min((page+1)*pageSize,totalCount)}</p>
+            <p style={{ margin:0, fontSize:13, color:'#9ca3af' }}>{totalCount.toLocaleString()} tickets</p>
             <AutoRefresh />
           </div>
         </div>
         <a href="/nuevo-it" target="_blank"
           style={{ display:'flex', alignItems:'center', gap:6, background:'#e8573f', color:'white', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, textDecoration:'none' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Form público
+          Form público →
         </a>
       </div>
 
-      {/* KPI chips */}
+      {/* KPI chips estado */}
       <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:14 }}>
         {ESTADOS.map(e => {
-          const cfg = ESTADO_CFG[e]; const n = cuentaEstados[e]||0
+          const cfg = EST_CFG[e]; const n = cuentaEstados[e]||0
           const active = filters.estado === e
           return (
             <button key={e} onClick={() => router.push(buildUrl({ estado: active?undefined:e }))}
               className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                active ? cfg.bg+' '+cfg.color+' border-current' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                active ? cfg.bg+' '+cfg.color+' border-current' : 'bg-white text-gray-500 border-gray-200'
               )}>
               <span className={cx('w-1.5 h-1.5 rounded-full', cfg.dot)}/>{e}
               <span className="font-mono ml-0.5 opacity-60">{n}</span>
@@ -122,11 +122,12 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
           const active = filters.responsable === r.id
           return (
             <div key={r.id} onClick={() => router.push(buildUrl({ responsable: active?undefined:r.id }))}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:20, border:'1px solid', borderColor: active?color:'#e5e7eb', background: active?'#1f2937':'white', cursor:'pointer', fontSize:12, fontWeight:500, color: active?'white':'#4b5563' }}>
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:20, border:'1px solid',
+                borderColor: active?color:'#e5e7eb', background: active?'#1f2937':'white',
+                cursor:'pointer', fontSize:12, fontWeight:500, color: active?'white':'#4b5563' }}>
               <div style={{ width:20, height:20, borderRadius:'50%', background:color, color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700 }}>{r.nombre.charAt(0)}</div>
               {r.nombre}
-              {n > 0 ? <span style={{ background:color, color:'white', borderRadius:9999, padding:'1px 7px', fontSize:11, fontWeight:700 }}>{n}</span>
-                     : <span style={{ color:'#d1d5db' }}>0</span>}
+              <span style={{ background:n>0?color:'#f3f4f6', color:n>0?'white':'#9ca3af', borderRadius:9999, padding:'1px 7px', fontSize:11, fontWeight:700 }}>{n}</span>
             </div>
           )
         })}
@@ -135,18 +136,18 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
       {/* Filtros */}
       <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginBottom:14 }}>
         <div style={{ position:'relative' }}>
-          <svg style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#9ca3af' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input defaultValue={filters.q} onChange={e => { clearTimeout((window as any).__st); (window as any).__st=setTimeout(()=>router.push(buildUrl({q:e.target.value||undefined})),400) }}
+          <input defaultValue={filters.q}
+            onChange={e => { clearTimeout((window as any).__st); (window as any).__st=setTimeout(()=>router.push(buildUrl({q:e.target.value||undefined})),400) }}
             placeholder="Buscar solicitante…"
-            style={{ paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid #e5e7eb', borderRadius:8, fontSize:13, outline:'none', width:220 }} />
+            style={{ paddingLeft:12, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid #e5e7eb', borderRadius:8, fontSize:13, outline:'none', width:220 }} />
         </div>
         <div style={{ display:'flex', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden', background:'white' }}>
           {['Todos',...SISTEMAS].map(s => (
             <button key={s} onClick={() => router.push(buildUrl({ sistema: s==='Todos'?undefined:s }))}
-              style={{ padding:'7px 10px', fontSize:12, fontWeight:500, border:'none', borderRight:'1px solid #e5e7eb', cursor:'pointer',
+              style={{ padding:'7px 10px', fontSize:11, fontWeight:500, border:'none', borderRight:'1px solid #e5e7eb', cursor:'pointer',
                 background: (s==='Todos'?!filters.sistema:filters.sistema===s)?'#111827':'white',
                 color: (s==='Todos'?!filters.sistema:filters.sistema===s)?'white':'#6b7280', whiteSpace:'nowrap' }}>
-              {s==='Todos'?'Todos':s}
+              {s}
             </button>
           ))}
         </div>
@@ -167,14 +168,13 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
             </thead>
             <tbody>
               {tickets.map((t,i) => {
-                const cfg = ESTADO_CFG[t.estado]||ESTADO_CFG['Recibido']
+                const cfg = EST_CFG[t.estado]||EST_CFG['Recibido']
                 const resp = t.responsable
                 return (
-                  <tr key={t.id} onClick={() => setSelected(t)}
-                    onMouseEnter={e => { const r = e.currentTarget.getBoundingClientRect(); hoverTimer.current=setTimeout(()=>setHovered({ticket:t,x:r.left,y:r.bottom}),500) }}
+                  <tr key={t.id} onClick={() => { originalResp.current=t.responsable_id; setSelected({...t}) }}
+                    onMouseEnter={e => { const r=e.currentTarget.getBoundingClientRect(); hoverTimer.current=setTimeout(()=>setHovered({ticket:t,x:r.left,y:r.bottom}),500) }}
                     onMouseLeave={() => { clearTimeout(hoverTimer.current); setHovered(null) }}
-                    style={{ borderBottom:'1px solid #f9fafb', background:i%2===0?'white':'#fafafa', cursor:'pointer' }}
-                    className="hover:bg-gray-50 transition-colors">
+                    style={{ borderBottom:'1px solid #f9fafb', background:i%2===0?'white':'#fafafa', cursor:'pointer' }}>
                     <td style={{ padding:'10px 14px' }}><span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:'#6b7280' }}>{t.numero}</span></td>
                     <td style={{ padding:'10px 14px' }}>
                       <span className={cx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium', cfg.bg, cfg.color)}>
@@ -196,8 +196,7 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
                     <td style={{ padding:'10px 14px', color:'#9ca3af', fontSize:12, whiteSpace:'nowrap' }}>{formatFecha(t.created_at)}</td>
                     <td style={{ padding:'10px 14px' }}>
                       <button onClick={e => handleDelete(t.id,e)} disabled={deleteId===t.id}
-                        style={{ background:'none', border:'none', cursor:'pointer', color:'#d1d5db', padding:'4px', borderRadius:6, lineHeight:1 }}
-                        className="hover:text-red-400 transition-colors">
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'#d1d5db', padding:'4px', borderRadius:6 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
                       </button>
                     </td>
@@ -214,10 +213,8 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:14 }}>
           <p style={{ margin:0, fontSize:12, color:'#9ca3af' }}>Página {page+1} de {totalPages}</p>
           <div style={{ display:'flex', gap:4 }}>
-            <button onClick={() => goToPage(0)} disabled={page===0} style={{ padding:'6px 10px', fontSize:12, borderRadius:6, border:'1px solid #e5e7eb', background:'white', cursor:'pointer', opacity:page===0?0.3:1 }}>«</button>
             <button onClick={() => goToPage(page-1)} disabled={page===0} style={{ padding:'6px 12px', fontSize:12, borderRadius:6, border:'1px solid #e5e7eb', background:'white', cursor:'pointer', opacity:page===0?0.3:1 }}>‹ Anterior</button>
             <button onClick={() => goToPage(page+1)} disabled={page>=totalPages-1} style={{ padding:'6px 12px', fontSize:12, borderRadius:6, border:'1px solid #e5e7eb', background:'white', cursor:'pointer', opacity:page>=totalPages-1?0.3:1 }}>Siguiente ›</button>
-            <button onClick={() => goToPage(totalPages-1)} disabled={page>=totalPages-1} style={{ padding:'6px 10px', fontSize:12, borderRadius:6, border:'1px solid #e5e7eb', background:'white', cursor:'pointer', opacity:page>=totalPages-1?0.3:1 }}>»</button>
           </div>
         </div>
       )}
@@ -230,24 +227,24 @@ export default function TicketsITTable({ tickets, totalCount, page, pageSize, cu
             <span style={{ background:'#f0f4ff', color:'#3730a3', borderRadius:6, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{hovered.ticket.sistema}</span>
           </div>
           <p style={{ margin:'0 0 8px', fontSize:13, color:'#374151', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden', whiteSpace:'pre-wrap' }}>{hovered.ticket.descripcion}</p>
-          <div style={{ fontSize:11, color:'#9ca3af', display:'flex', justifyContent:'space-between' }}>
-            <span>{hovered.ticket.mail_solicitante}</span>
-            <span style={{ background:'#f9fafb', border:'1px solid #f0f0f0', borderRadius:6, padding:'2px 8px' }}>Click para editar →</span>
-          </div>
+          <p style={{ margin:0, fontSize:11, color:'#9ca3af' }}>{hovered.ticket.mail_solicitante}</p>
         </div>
       )}
 
       {/* Modal */}
       {selected && (
-        <TicketITModal ticket={selected} responsables={responsables} perfil={perfil} saving={saving}
-          onClose={() => setSelected(null)} onSave={handleSave} />
+        <TicketITModal
+          ticket={selected} responsables={responsables} saving={saving}
+          onClose={() => setSelected(null)}
+          onSave={(t, extra) => handleSave(t, extra)}
+        />
       )}
     </div>
   )
 }
 
-function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }: {
-  ticket: TicketIT; responsables: {id:string;nombre:string;mail:string}[]; perfil: Perfil
+function TicketITModal({ ticket, responsables, saving, onClose, onSave }: {
+  ticket: TicketIT; responsables: {id:string;nombre:string;mail:string}[]
   saving: boolean; onClose: ()=>void; onSave: (t:TicketIT, extra?:Record<string,any>)=>void
 }) {
   const [form, setForm] = useState({...ticket})
@@ -277,7 +274,6 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(2px)', zIndex:9999, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'white', borderRadius:16, width:'100%', maxWidth:680, boxShadow:'0 20px 60px rgba(0,0,0,0.2)', marginBottom:40 }}>
-        {/* Header */}
         <div style={{ padding:'18px 24px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
@@ -290,9 +286,7 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
         </div>
 
         <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:16 }}>
-          {/* Datos del ticket */}
           <div style={{ background:'#f9fafb', borderRadius:10, padding:14, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px 16px' }}>
-            {row('Sistema', ticket.sistema)}
             {row('Módulo TP', ticket.modulo_tourplan)}
             {row('Módulo Pythagoras', ticket.modulo_pythagoras)}
             {row('Módulo B2C', ticket.modulo_b2c)}
@@ -305,7 +299,6 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
             {row('Link Itinerario', ticket.link_itinerario)}
           </div>
 
-          {/* Descripción */}
           <div style={{ background:'#f9fafb', borderRadius:10, padding:14 }}>
             <p style={{ margin:'0 0 6px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>Descripción</p>
             <p style={{ margin:0, fontSize:13, color:'#374151', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{ticket.descripcion}</p>
@@ -317,17 +310,16 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
 
           <hr style={{ border:'none', borderTop:'1px solid #f0f0f0' }}/>
 
-          {/* Gestión */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             <div>
               <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:6, textTransform:'uppercase' }}>Estado</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                {['Recibido','Asignado','Pendiente','Resuelto'].map(e => {
-                  const cfg = (ESTADO_CFG as any)[e]; const active = form.estado===e
+                {ESTADOS.map(e => {
+                  const cfg = EST_CFG[e]; const active = form.estado===e
                   return (
                     <button key={e} onClick={() => setForm(f=>({...f,estado:e}))}
                       className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                        active ? cfg.bg+' '+cfg.color+' border-current' : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                        active ? cfg.bg+' '+cfg.color+' border-current' : 'bg-white text-gray-400 border-gray-200'
                       )}>
                       <span className={cx('w-1.5 h-1.5 rounded-full', cfg.dot)}/>{e}
                     </button>
@@ -350,10 +342,10 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
             </div>
             {nowResuelto && (
               <div>
-                <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#16a34a', marginBottom:6, textTransform:'uppercase' }}>Comentario de resolución *</label>
+                <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#16a34a', marginBottom:6, textTransform:'uppercase' }}>Resolución (se envía al solicitante)</label>
                 <textarea value={form.comentario_solucion||''} onChange={set('comentario_solucion')} rows={2}
                   style={{ width:'100%', border:'1px solid #bbf7d0', borderRadius:8, padding:'8px 12px', fontSize:13, resize:'vertical', outline:'none', fontFamily:'inherit', boxSizing:'border-box', background:'#f0fdf4' }}
-                  placeholder="Se enviará al solicitante…"/>
+                  placeholder="Describí la resolución…"/>
               </div>
             )}
           </div>
