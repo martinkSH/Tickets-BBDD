@@ -454,23 +454,13 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
 
   const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
 
-  const guardar = async (updates: Partial<Tarea>) => {
+  const guardar = async (updates: any) => {
     setSaving(true)
     const prevAsignadoId = tarea.asignado_id
-    // Si el asignado es un externo, buscar su mail para asignado_a
-    if (updates.asignado_id) {
-      const externo = externosProyecto.find((e: any) => e.id === updates.asignado_id)
-      if (externo) {
-        updates.asignado_a = externo.mail
-        // Para externos, asignado_id queda como el UUID del externo (no de perfiles)
-        // guardamos también el mail en asignado_a para identificarlos en la vista pública
-      }
-    }
-    const merged = { ...tarea, ...updates }
-    setTarea(merged as Tarea)
+    setTarea((t: any) => ({ ...t, ...updates }))
     await fetch('/api/proyectos/tareas/' + tarea.id, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...updates, prevAsignadoId, externosProyecto }),
+      body: JSON.stringify({ ...updates, prevAsignadoId }),
     })
     setSaving(false)
   }
@@ -650,22 +640,35 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
             {/* Asignado */}
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Asignado a</label>
-              <select value={tarea.asignado_id||''} onChange={e => guardar({ asignado_id: e.target.value||undefined, asignado_a: e.target.options[e.target.selectedIndex].text })}
+              <select
+                value={(tarea as any).asignado_externo_id ? 'ext:'+((tarea as any).asignado_externo_id) : tarea.asignado_id||''}
+                onChange={e => {
+                  const val = e.target.value
+                  if (!val) { guardar({ asignado_id: undefined, asignado_a: undefined }); return }
+                  if (val.startsWith('ext:')) {
+                    const extId = val.replace('ext:','')
+                    const ext = externosProyecto.find((x: any) => x.id === extId)
+                    if (ext) guardar({ asignado_externo_id: ext.id, asignado_externo_nombre: ext.nombre, asignado_a: ext.mail, asignado_id: undefined })
+                  } else {
+                    guardar({ asignado_id: val, asignado_externo_id: undefined, asignado_externo_nombre: undefined })
+                  }
+                }}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', background:'white' }}>
                 <option value="">Sin asignar</option>
                 {miembros.length > 0 && <optgroup label="── Equipo interno">
                   {miembros.map((m: any) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </optgroup>}
                 {externosProyecto.length > 0 && <optgroup label="── Colaboradores externos">
-                  {externosProyecto.map((e: any) => <option key={e.id} value={e.id}>{e.nombre} (externo)</option>)}
+                  {externosProyecto.map((e: any) => <option key={e.id} value={'ext:'+e.id}>{e.nombre} (externo)</option>)}
                 </optgroup>}
               </select>
-              {tarea.asignado && (
+              {(tarea.asignado || (tarea as any).asignado_externo_nombre) && (
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
-                  <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-                    {tarea.asignado.nombre.charAt(0)}
+                  <div style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre||'?'), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+                    {(tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre||'?').charAt(0)}
                   </div>
-                  <span style={{ fontSize:12, color:'#374151' }}>{tarea.asignado.nombre}</span>
+                  <span style={{ fontSize:12, color:'#374151' }}>{tarea.asignado?.nombre||(tarea as any).asignado_externo_nombre}</span>
+                  {(tarea as any).asignado_externo_nombre && <span style={{ fontSize:10, color:'#9ca3af' }}>(externo)</span>}
                 </div>
               )}
             </div>
