@@ -84,6 +84,11 @@ export default function ProyectosPage() {
     setLoading(false)
   }
 
+  const eliminarProyecto = async (p: Proyecto) => {
+    const res = await fetch('/api/proyectos/' + p.id, { method: 'DELETE' })
+    if (res.ok) await cargarDatos()
+  }
+
   const abrirProyecto = async (p: Proyecto) => {
     const res = await fetch('/api/proyectos/' + p.id)
     if (res.ok) {
@@ -128,6 +133,7 @@ export default function ProyectosPage() {
             onAbrirProyecto={abrirProyecto}
             onNuevoProyecto={() => setShowNuevoProyecto(true)}
             onRecargar={cargarDatos}
+            onEliminar={eliminarProyecto}
           />
         ) : proyectoActivo ? (
           <KanbanView
@@ -141,6 +147,7 @@ export default function ProyectosPage() {
             onVolver={() => { setView('home'); cargarDatos() }}
             onRecargar={recargarProyecto}
             onInvitar={() => setShowInvitar(true)}
+            onEliminarProyecto={async () => { if (proyectoActivo) { await eliminarProyecto(proyectoActivo); setView('home') } }}
             perfil={perfil}
           />
         ) : null}
@@ -179,7 +186,7 @@ export default function ProyectosPage() {
 }
 
 // ── Home View ─────────────────────────────────────────────────────────────
-function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyecto, onRecargar }: any) {
+function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyecto, onRecargar, onEliminar }: any) {
   const porEspacio = espacios.map((e: Espacio) => ({
     ...e,
     proyectos: proyectos.filter((p: Proyecto) => p.espacio_id === e.id),
@@ -219,7 +226,7 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
                 <span style={{ fontSize:12, color:'#9ca3af', background:'#f3f4f6', borderRadius:20, padding:'2px 8px' }}>{e.proyectos.length}</span>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:14 }}>
-                {e.proyectos.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} />)}
+                {e.proyectos.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} />)}
               </div>
             </div>
           ))}
@@ -227,7 +234,7 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
             <div>
               <h2 style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:14 }}>Sin espacio</h2>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:14 }}>
-                {sinEspacio.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} />)}
+                {sinEspacio.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} />)}
               </div>
             </div>
           )}
@@ -237,19 +244,39 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
   )
 }
 
-function ProyectoCard({ proyecto, onClick }: { proyecto: Proyecto; onClick: () => void }) {
+function ProyectoCard({ proyecto, onClick, onEliminar }: { proyecto: Proyecto; onClick: () => void; onEliminar: () => void }) {
   const estadoCfg = ESTADO_PROYECTO_CFG[proyecto.estado] || ESTADO_PROYECTO_CFG.activo
+  const [menu, setMenu] = useState(false)
   return (
-    <div onClick={onClick} style={{ background:'white', borderRadius:14, border:'1px solid #e5e7eb', padding:20, cursor:'pointer', transition:'all 0.15s', position:'relative', overflow:'hidden' }}
+    <div style={{ background:'white', borderRadius:14, border:'1px solid #e5e7eb', padding:20, cursor:'pointer', transition:'all 0.15s', position:'relative', overflow:'hidden' }}
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'; (e.currentTarget as HTMLElement).style.transform='translateY(-1px)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow='none'; (e.currentTarget as HTMLElement).style.transform='none' }}>
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow='none'; (e.currentTarget as HTMLElement).style.transform='none'; setMenu(false) }}>
       <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:proyecto.color }} />
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginTop:4, marginBottom:10 }}>
         <div style={{ width:36, height:36, borderRadius:10, background:proyecto.color+'22', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
           📁
         </div>
-        <span style={{ background:estadoCfg.bg, color:estadoCfg.color, borderRadius:20, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{estadoCfg.label}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ background:estadoCfg.bg, color:estadoCfg.color, borderRadius:20, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{estadoCfg.label}</span>
+          <div style={{ position:'relative' }}>
+            <button onClick={e => { e.stopPropagation(); setMenu(m => !m) }}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18, lineHeight:1, padding:'2px 6px', borderRadius:6 }}>⋯</button>
+            {menu && (
+              <div style={{ position:'absolute', right:0, top:'100%', background:'white', borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.15)', border:'1px solid #f0f0f0', zIndex:100, minWidth:140, overflow:'hidden' }}>
+                <button onClick={e => { e.stopPropagation(); onClick() }}
+                  style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#374151' }}>
+                  📋 Abrir
+                </button>
+                <button onClick={e => { e.stopPropagation(); if(confirm(`¿Eliminar "${proyecto.nombre}"? Esta acción no se puede deshacer.`)) onEliminar() }}
+                  style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#dc2626' }}>
+                  🗑️ Eliminar proyecto
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+      <div onClick={onClick}>
       <h3 style={{ margin:'0 0 6px', fontSize:15, fontWeight:700, color:'#111827' }}>{proyecto.nombre}</h3>
       {proyecto.descripcion && <p style={{ margin:'0 0 12px', fontSize:12, color:'#9ca3af', lineHeight:1.4 }}>{proyecto.descripcion}</p>}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:12 }}>
@@ -268,12 +295,13 @@ function ProyectoCard({ proyecto, onClick }: { proyecto: Proyecto; onClick: () =
           </div>
         )}
       </div>
+      </div>{/* fin div onClick */}
     </div>
   )
 }
 
 // ── Kanban View ───────────────────────────────────────────────────────────
-function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, onInvitar, perfil }: any) {
+function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, onInvitar, onEliminarProyecto, perfil }: any) {
   const [dragTarea, setDragTarea] = useState<string|null>(null)
   const [dragOver, setDragOver] = useState<string|null>(null)
   const [nuevaTareaTexto, setNuevaTareaTexto] = useState('')
