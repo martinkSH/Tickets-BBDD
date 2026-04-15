@@ -7,8 +7,16 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tickets-bbdd-muhz.ve
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
   const body = await req.json()
+  // Soporte para externos con token
+  let userId: string | undefined
+  if (body.token) {
+    const { data: ext } = await supabase.from('proyectos_externos').select('id').eq('token', body.token).eq('activo', true).single()
+    if (!ext) return NextResponse.json({ error: 'Token inválido' }, { status: 403 })
+  } else {
+    const { data: { user } } = await supabase.auth.getUser()
+    userId = user?.id
+  }
 
   // Obtener orden máximo en la lista
   const { data: maxOrden } = await supabase
@@ -16,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   const { data: tarea, error } = await supabase
     .from('proyectos_tareas')
-    .insert({ ...body, creador_id: user?.id, orden: (maxOrden?.orden || 0) + 1 })
+    .insert({ ...body, creador_id: userId || null, orden: (maxOrden?.orden || 0) + 1 })
     .select('*, asignado:asignado_id(nombre,mail), lista:lista_id(nombre), proyecto:proyecto_id(nombre)').single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
