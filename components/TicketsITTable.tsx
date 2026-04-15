@@ -370,10 +370,3 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
     </div>
   )
 }
-
-const ESTADO_CFG: Record<string,{bg:string;color:string;dot:string}> = {
-  Recibido:  { bg:'bg-slate-100',   color:'text-slate-600',   dot:'bg-slate-400'   },
-  Asignado:  { bg:'bg-orange-100',  color:'text-orange-700',  dot:'bg-orange-500'  },
-  Pendiente: { bg:'bg-purple-100',  color:'text-purple-700',  dot:'bg-purple-500'  },
-  Resuelto:  { bg:'bg-emerald-100', color:'text-emerald-800', dot:'bg-emerald-600' },
-}
