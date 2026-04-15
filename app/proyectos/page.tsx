@@ -149,6 +149,7 @@ export default function ProyectosPage() {
       {showNuevoProyecto && (
         <NuevoProyectoModal
           espacios={espacios}
+          miembros={miembros}
           onClose={() => setShowNuevoProyecto(false)}
           onCreado={async () => { setShowNuevoProyecto(false); await cargarDatos() }}
         />
@@ -164,7 +165,7 @@ export default function ProyectosPage() {
       {tareaModal && (
         <TareaDetalleModal
           tarea={tareaModal}
-          miembros={miembros}
+          miembros={(proyectoActivo?.miembros||[]).map((m: any) => m.perfil).filter(Boolean)}
           perfil={perfil}
           listas={proyectoActivo?.listas || []}
           proyectoId={proyectoActivo?.id}
@@ -805,20 +806,25 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
 }
 
 // ── Nuevo Proyecto Modal ──────────────────────────────────────────────────
-function NuevoProyectoModal({ espacios, onClose, onCreado }: any) {
+function NuevoProyectoModal({ espacios, miembros, onClose, onCreado }: any) {
   const [form, setForm] = useState({ nombre:'', descripcion:'', espacio_id:'', color:'#4f6ef7', estado:'activo', fecha_inicio:'', fecha_fin:'' })
+  const [participantes, setParticipantes] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [mounted, setMounted] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
   useEffect(() => setMounted(true), [])
   const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
 
+  const toggleParticipante = (id: string) => {
+    setParticipantes(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  }
+
   const crear = async () => {
     if (!form.nombre.trim()) return
     setSaving(true)
     const res = await fetch('/api/proyectos', {
       method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ ...form, espacio_id: form.espacio_id||null, fecha_inicio: form.fecha_inicio||null, fecha_fin: form.fecha_fin||null }),
+      body: JSON.stringify({ ...form, espacio_id: form.espacio_id||null, fecha_inicio: form.fecha_inicio||null, fecha_fin: form.fecha_fin||null, participantes }),
     })
     if (res.ok) onCreado()
     setSaving(false)
@@ -874,6 +880,27 @@ function NuevoProyectoModal({ espacios, onClose, onCreado }: any) {
                   style={{ width:28, height:28, borderRadius:'50%', background:c, border: form.color===c ? '3px solid #111827' : '3px solid transparent', cursor:'pointer', transition:'border 0.15s' }} />
               ))}
             </div>
+          </div>
+          <div>
+            <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#6b7280', marginBottom:8 }}>
+              Participantes del proyecto
+              <span style={{ fontWeight:400, color:'#9ca3af', marginLeft:4 }}>({participantes.length} seleccionados)</span>
+            </label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {miembros.map((m: any) => {
+                const sel = participantes.includes(m.id)
+                return (
+                  <button key={m.id} onClick={() => toggleParticipante(m.id)}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', borderRadius:20, border:'1.5px solid', borderColor:sel?'#4f6ef7':'#e5e7eb', background:sel?'#eef2ff':'white', cursor:'pointer', fontSize:12, fontWeight:sel?600:400, color:sel?'#4f6ef7':'#6b7280', transition:'all 0.15s' }}>
+                    <div style={{ width:18, height:18, borderRadius:'50%', background:sel?'#4f6ef7':avatarColor(m.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700, color:'white' }}>
+                      {sel ? '✓' : m.nombre.charAt(0)}
+                    </div>
+                    {m.nombre}
+                  </button>
+                )
+              })}
+            </div>
+            <p style={{ margin:'6px 0 0', fontSize:11, color:'#9ca3af' }}>Solo estos usuarios aparecerán en el dropdown de asignación.</p>
           </div>
         </div>
 
