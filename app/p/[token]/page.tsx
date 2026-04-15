@@ -129,8 +129,10 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
         </div>
       </div>
 
-      {/* Kanban — igual que el interno */}
-      <div style={{ padding:24, overflowX:'auto', flex:1 }}>
+      {/* Layout: panel mis tareas + kanban */}
+      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+        <MisTareasExterno proyecto={proyecto} colaborador={colaborador} onTareaClick={setTareaModal} />
+        <div style={{ padding:24, overflowX:'auto', flex:1 }}>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start', minWidth:'max-content' }}>
           {(proyecto.listas||[]).map((lista: any) => (
             <div key={lista.id}
@@ -202,6 +204,9 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
         </div>
       </div>
 
+        </div>
+      </div>
+
       {/* Modal de tarea — completo como el admin */}
       {tareaModal && (
         <TareaModalExterno
@@ -215,6 +220,59 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
           onDeleted={async () => { await recargar(); setTareaModal(null) }}
         />
       )}
+    </div>
+  )
+}
+
+
+// ── Mis Tareas Externo ────────────────────────────────────────────────────
+function MisTareasExterno({ proyecto, colaborador, onTareaClick }: any) {
+  const misMail = colaborador?.mail
+  const misTareas = (proyecto?.listas||[]).flatMap((l: any) =>
+    (l.tareas||[])
+      .filter((t: any) => t.asignado_a === misMail || t.asignado_externo?.mail === misMail)
+      .filter((t: any) => !l.nombre.toLowerCase().includes('complet'))
+      .map((t: any) => ({ ...t, _listaNombre: l.nombre, _listaColor: l.color }))
+  )
+  const hoy = new Date(); hoy.setHours(0,0,0,0)
+  const vencidas  = misTareas.filter((t: any) => t.fecha_vencimiento && new Date(t.fecha_vencimiento) < hoy)
+  const hoyT      = misTareas.filter((t: any) => { if (!t.fecha_vencimiento) return false; const d = new Date(t.fecha_vencimiento); d.setHours(0,0,0,0); return d.getTime()===hoy.getTime() })
+  const proximas  = misTareas.filter((t: any) => t.fecha_vencimiento && new Date(t.fecha_vencimiento) > hoy).sort((a: any,b: any) => new Date(a.fecha_vencimiento).getTime()-new Date(b.fecha_vencimiento).getTime()).slice(0,8)
+  const sinFecha  = misTareas.filter((t: any) => !t.fecha_vencimiento).slice(0,6)
+  const PRIORIDAD_DOT: Record<string,string> = { urgente:'#dc2626', alta:'#ea580c', media:'#d97706', baja:'#9ca3af' }
+
+  const TareaRow = ({ t }: { t: any }) => (
+    <div onClick={() => onTareaClick(t)} style={{ display:'flex', gap:8, padding:'7px 10px', borderRadius:8, cursor:'pointer' }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background='#f3f4f6'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background='transparent'}>
+      <div style={{ width:8, height:8, borderRadius:'50%', background:PRIORIDAD_DOT[t.prioridad]||'#9ca3af', marginTop:4, flexShrink:0 }} />
+      <div style={{ flex:1, minWidth:0 }}>
+        <p style={{ margin:0, fontSize:12, fontWeight:500, color:'#111827', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.titulo}</p>
+        <div style={{ display:'flex', gap:6, marginTop:2 }}>
+          <span style={{ fontSize:10, color:t._listaColor, fontWeight:600 }}>{t._listaNombre}</span>
+          {t.fecha_vencimiento && <span style={{ fontSize:10, color: new Date(t.fecha_vencimiento)<hoy?'#dc2626':'#9ca3af' }}>📅 {new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}</span>}
+        </div>
+      </div>
+    </div>
+  )
+  const Group = ({ label, tareas, color }: { label: string; tareas: any[]; color: string }) =>
+    tareas.length > 0 ? <div style={{ marginBottom:14 }}>
+      <p style={{ margin:'0 0 4px', fontSize:10, fontWeight:700, color, textTransform:'uppercase', letterSpacing:'0.06em', padding:'0 10px' }}>{label} ({tareas.length})</p>
+      {tareas.map((t: any) => <TareaRow key={t.id} t={t} />)}
+    </div> : null
+
+  return (
+    <div style={{ width:220, flexShrink:0, borderRight:'1px solid #e5e7eb', background:'white', overflowY:'auto' }}>
+      <div style={{ padding:'16px 10px 8px', borderBottom:'1px solid #f0f0f0' }}>
+        <p style={{ margin:0, fontSize:12, fontWeight:700, color:'#374151' }}>Mis tareas</p>
+        <p style={{ margin:'2px 0 0', fontSize:11, color:'#9ca3af' }}>{misTareas.length} pendientes</p>
+      </div>
+      <div style={{ padding:'8px 0' }}>
+        {misTareas.length === 0
+          ? <p style={{ padding:'20px 12px', fontSize:12, color:'#9ca3af', textAlign:'center' }}>Sin tareas asignadas 🎉</p>
+          : <><Group label="Vencidas" tareas={vencidas} color="#dc2626"/><Group label="Hoy" tareas={hoyT} color="#d97706"/><Group label="Próximas" tareas={proximas} color="#2563eb"/><Group label="Sin fecha" tareas={sinFecha} color="#9ca3af"/></>
+        }
+      </div>
     </div>
   )
 }
