@@ -167,6 +167,7 @@ export default function ProyectosPage() {
           miembros={miembros}
           perfil={perfil}
           listas={proyectoActivo?.listas || []}
+          proyectoId={proyectoActivo?.id}
           onClose={() => setTareaModal(null)}
           onUpdated={async () => { await recargarProyecto(); setTareaModal(null) }}
           onDeleted={async () => { await recargarProyecto(); setTareaModal(null) }}
@@ -432,17 +433,23 @@ function TareaCard({ tarea, onDragStart, onDragEnd, onClick }: { tarea: Tarea; o
 }
 
 // ── Tarea Detalle Modal ───────────────────────────────────────────────────
-function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, onClose, onUpdated, onDeleted }: any) {
+function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proyectoId, onClose, onUpdated, onDeleted }: any) {
   const [tarea, setTarea] = useState<Tarea>(tareaInicial)
   const [nuevoComentario, setNuevoComentario] = useState('')
   const [nuevaSubtarea, setNuevaSubtarea] = useState('')
   const [saving, setSaving] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [externosProyecto, setExternosProyecto] = useState<any[]>([])
   const overlayRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     setMounted(true)
     // Cargar tarea completa
     fetch('/api/proyectos/tareas/' + tarea.id).then(r => r.json()).then(data => { if (!data.error) setTarea(data) })
+    // Cargar colaboradores externos del proyecto
+    if (proyectoId) {
+      fetch('/api/proyectos/externos?proyecto_id=' + proyectoId)
+        .then(r => r.json()).then(data => setExternosProyecto(Array.isArray(data) ? data.filter((e: any) => e.activo) : []))
+    }
   }, [])
 
   const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
@@ -450,11 +457,20 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, onCl
   const guardar = async (updates: Partial<Tarea>) => {
     setSaving(true)
     const prevAsignadoId = tarea.asignado_id
+    // Si el asignado es un externo, buscar su mail para asignado_a
+    if (updates.asignado_id) {
+      const externo = externosProyecto.find((e: any) => e.id === updates.asignado_id)
+      if (externo) {
+        updates.asignado_a = externo.mail
+        // Para externos, asignado_id queda como el UUID del externo (no de perfiles)
+        // guardamos también el mail en asignado_a para identificarlos en la vista pública
+      }
+    }
     const merged = { ...tarea, ...updates }
     setTarea(merged as Tarea)
     await fetch('/api/proyectos/tareas/' + tarea.id, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...updates, prevAsignadoId }),
+      body: JSON.stringify({ ...updates, prevAsignadoId, externosProyecto }),
     })
     setSaving(false)
   }
@@ -637,7 +653,12 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, onCl
               <select value={tarea.asignado_id||''} onChange={e => guardar({ asignado_id: e.target.value||undefined, asignado_a: e.target.options[e.target.selectedIndex].text })}
                 style={{ width:'100%', border:'1px solid #e5e7eb', borderRadius:8, padding:'7px 10px', fontSize:13, outline:'none', background:'white' }}>
                 <option value="">Sin asignar</option>
-                {miembros.map((m: any) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                {miembros.length > 0 && <optgroup label="── Equipo interno">
+                  {miembros.map((m: any) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </optgroup>}
+                {externosProyecto.length > 0 && <optgroup label="── Colaboradores externos">
+                  {externosProyecto.map((e: any) => <option key={e.id} value={e.id}>{e.nombre} (externo)</option>)}
+                </optgroup>}
               </select>
               {tarea.asignado && (
                 <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:6 }}>
