@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   // Traer el proyecto completo
   const { data } = await supabase.from('proyectos')
-    .select('*, espacio:espacio_id(nombre,color,icono), listas:proyectos_listas(*, tareas:proyectos_tareas(*, asignado:asignado_id(nombre,mail), subtareas:proyectos_subtareas(*), comentarios:proyectos_comentarios(*, autor:autor_id(nombre,mail))))')
+    .select('*, espacio:espacio_id(nombre,color,icono), listas:proyectos_listas(*, tareas:proyectos_tareas(*, asignado:asignado_id(nombre,mail), asignado_externo:asignado_externo_id(id,nombre,mail), subtareas:proyectos_subtareas(*), comentarios:proyectos_comentarios(*, autor:autor_id(nombre,mail))))')
     .eq('id', externo.proyecto_id).single()
   if (!data) return NextResponse.json({ error: 'Proyecto no encontrado' }, { status: 404 })
   if (data.listas) {
