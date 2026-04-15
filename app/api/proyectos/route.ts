@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const body = await req.json()
+  const { participantes, ...campos } = body
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
-    .insert({ ...body, creador_id: user?.id })
+    .insert({ ...campos, creador_id: user?.id })
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -30,9 +31,20 @@ export async function POST(req: NextRequest) {
     { proyecto_id: proyecto.id, nombre: 'Completado',  color: '#16a34a', orden: 3 },
   ])
 
-  // Agregar creador como miembro admin
-  if (user?.id) {
-    await supabase.from('proyectos_miembros').insert({ proyecto_id: proyecto.id, perfil_id: user.id, rol: 'admin' })
+  // Agregar creador siempre como admin
+  const miembrosAInsertar: any[] = []
+  if (user?.id) miembrosAInsertar.push({ proyecto_id: proyecto.id, perfil_id: user.id, rol: 'admin' })
+
+  // Agregar participantes seleccionados (evitar duplicar al creador)
+  if (participantes?.length) {
+    for (const pid of participantes) {
+      if (pid !== user?.id) {
+        miembrosAInsertar.push({ proyecto_id: proyecto.id, perfil_id: pid, rol: 'miembro' })
+      }
+    }
+  }
+  if (miembrosAInsertar.length) {
+    await supabase.from('proyectos_miembros').insert(miembrosAInsertar)
   }
 
   return NextResponse.json({ ok: true, proyecto })
