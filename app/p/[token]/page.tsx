@@ -99,7 +99,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
             <span style={{ fontSize:12, fontWeight:700, color:'#c9a96e', letterSpacing:'0.1em', textTransform:'uppercase' }}>Atlas</span>
             <span style={{ fontSize:12, fontWeight:700, color:'white', letterSpacing:'0.1em', textTransform:'uppercase' }}>Archive</span>
           </div>
-          <span style={{ color:'#333', fontSize:13, margin:'0 4px' }}>·</span>
+          <span style={{ color:'#555', fontSize:13, margin:'0 4px' }}>·</span>
           <span style={{ color:'#555', fontSize:13 }}>{proyecto.nombre}</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -129,85 +129,82 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
         </div>
       </div>
 
-      {/* Layout: panel mis tareas + kanban */}
+      {/* Layout: mis tareas + kanban */}
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
         <MisTareasExterno proyecto={proyecto} colaborador={colaborador} onTareaClick={setTareaModal} />
         <div style={{ padding:24, overflowX:'auto', flex:1 }}>
-        <div style={{ display:'flex', gap:16, alignItems:'flex-start', minWidth:'max-content' }}>
-          {(proyecto.listas||[]).map((lista: any) => (
-            <div key={lista.id}
-              onDragOver={e => { e.preventDefault(); setDragOver(lista.id) }}
-              onDrop={() => handleDrop(lista.id)}
-              onDragLeave={() => setDragOver(null)}
-              style={{ width:280, flexShrink:0, background: dragOver===lista.id?'#f0f4ff':'#f9fafb', borderRadius:14, border:`2px ${dragOver===lista.id?'dashed #4f6ef7':'solid #e5e7eb'}`, padding:12, display:'flex', flexDirection:'column', gap:8, minHeight:200, transition:'all 0.15s' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ width:10, height:10, borderRadius:'50%', background:lista.color }} />
-                  <span style={{ fontSize:13, fontWeight:700, color:'#374151' }}>{lista.nombre}</span>
-                  <span style={{ fontSize:11, color:'#9ca3af', background:'#e5e7eb', borderRadius:10, padding:'1px 6px' }}>{lista.tareas.length}</span>
-                </div>
-                <button onClick={() => setNuevaTareaLista(lista.id)}
-                  style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:20, lineHeight:1, padding:'2px 4px' }}>+</button>
-              </div>
-
-              {lista.tareas.map((tarea: any) => {
-                const pCfg = PRIORIDAD_CFG[tarea.prioridad] || PRIORIDAD_CFG.media
-                const vencida = isVencida(tarea.fecha_vencimiento)
-                const subtComp = (tarea.subtareas||[]).filter((s: any) => s.completada).length
-                const subtTotal = (tarea.subtareas||[]).length
-                return (
-                  <div key={tarea.id} draggable
-                    onDragStart={() => setDragTarea(tarea.id)}
-                    onDragEnd={() => setDragTarea(null)}
-                    onClick={() => setTareaModal(tarea)}
-                    style={{ background:'white', borderRadius:10, padding:'12px 14px', border:'1px solid #e5e7eb', cursor:'grab', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', transition:'box-shadow 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'}>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:6 }}>
-                      <span style={{ background:pCfg.bg, color:pCfg.color, borderRadius:4, padding:'2px 6px', fontSize:10, fontWeight:700 }}>{pCfg.label}</span>
-                      {(tarea.etiquetas||[]).map((et: string) => (
-                        <span key={et} style={{ background:'#ede9fe', color:'#7c3aed', borderRadius:4, padding:'2px 6px', fontSize:10, fontWeight:600 }}>{et}</span>
-                      ))}
-                    </div>
-                    <p style={{ margin:'0 0 6px', fontSize:13, fontWeight:600, color:'#111827', lineHeight:1.4 }}>{tarea.titulo}</p>
-                    {tarea.descripcion && <p style={{ margin:'0 0 6px', fontSize:11, color:'#9ca3af' }}>{tarea.descripcion.slice(0,80)}{tarea.descripcion.length>80?'…':''}</p>}
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
-                      <div style={{ display:'flex', gap:8, fontSize:11 }}>
-                        {subtTotal > 0 && <span style={{ color:'#6b7280' }}>✓ {subtComp}/{subtTotal}</span>}
-                        {tarea.fecha_vencimiento && <span style={{ color:vencida?'#dc2626':'#9ca3af' }}>📅 {formatDate(tarea.fecha_vencimiento)}</span>}
-                      </div>
-                      {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
-                        const a = tarea.asignado || (tarea as any).asignado_externo
-                        return <div title={a.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
-                          {a.nombre.charAt(0)}
-                        </div>
-                      })()}
-                    </div>
+          <div style={{ display:'flex', gap:16, alignItems:'flex-start', minWidth:'max-content' }}>
+            {(proyecto.listas||[]).map((lista: any) => (
+              <div key={lista.id}
+                onDragOver={e => { e.preventDefault(); setDragOver(lista.id) }}
+                onDrop={() => handleDrop(lista.id)}
+                onDragLeave={() => setDragOver(null)}
+                style={{ width:280, flexShrink:0, background: dragOver===lista.id?'#f0f4ff':'#f9fafb', borderRadius:14, border:`2px ${dragOver===lista.id?'dashed #4f6ef7':'solid #e5e7eb'}`, padding:12, display:'flex', flexDirection:'column', gap:8, minHeight:200, transition:'all 0.15s' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:10, height:10, borderRadius:'50%', background:lista.color }} />
+                    <span style={{ fontSize:13, fontWeight:700, color:'#374151' }}>{lista.nombre}</span>
+                    <span style={{ fontSize:11, color:'#9ca3af', background:'#e5e7eb', borderRadius:10, padding:'1px 6px' }}>{lista.tareas.length}</span>
                   </div>
-                )
-              })}
+                  <button onClick={() => setNuevaTareaLista(lista.id)}
+                    style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:20, lineHeight:1, padding:'2px 4px' }}>+</button>
+                </div>
 
-              {/* Nueva tarea inline */}
-              {nuevaTareaLista === lista.id ? (
-                <NuevaTareaInline
-                  onCrear={(titulo: string) => crearTarea(lista.id, titulo)}
-                  onCancelar={() => setNuevaTareaLista(null)}
-                />
-              ) : (
-                <button onClick={() => setNuevaTareaLista(lista.id)}
-                  style={{ width:'100%', background:'none', border:'1px dashed #e5e7eb', borderRadius:10, padding:'8px', cursor:'pointer', color:'#9ca3af', fontSize:12, textAlign:'left' }}>
-                  + Agregar tarea
-                </button>
-              )}
-            </div>
-          ))}
+                {lista.tareas.map((tarea: any) => {
+                  const pCfg = PRIORIDAD_CFG[tarea.prioridad] || PRIORIDAD_CFG.media
+                  const vencida = isVencida(tarea.fecha_vencimiento)
+                  const subtComp = (tarea.subtareas||[]).filter((s: any) => s.completada).length
+                  const subtTotal = (tarea.subtareas||[]).length
+                  return (
+                    <div key={tarea.id} draggable
+                      onDragStart={() => setDragTarea(tarea.id)}
+                      onDragEnd={() => setDragTarea(null)}
+                      onClick={() => setTareaModal(tarea)}
+                      style={{ background:'white', borderRadius:10, padding:'12px 14px', border:'1px solid #e5e7eb', cursor:'grab', boxShadow:'0 1px 3px rgba(0,0,0,0.05)', transition:'box-shadow 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'}>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:6 }}>
+                        <span style={{ background:pCfg.bg, color:pCfg.color, borderRadius:4, padding:'2px 6px', fontSize:10, fontWeight:700 }}>{pCfg.label}</span>
+                        {(tarea.etiquetas||[]).map((et: string) => (
+                          <span key={et} style={{ background:'#ede9fe', color:'#7c3aed', borderRadius:4, padding:'2px 6px', fontSize:10, fontWeight:600 }}>{et}</span>
+                        ))}
+                      </div>
+                      <p style={{ margin:'0 0 6px', fontSize:13, fontWeight:600, color:'#111827', lineHeight:1.4 }}>{tarea.titulo}</p>
+                      {tarea.descripcion && <p style={{ margin:'0 0 6px', fontSize:11, color:'#9ca3af' }}>{tarea.descripcion.slice(0,80)}{tarea.descripcion.length>80?'…':''}</p>}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
+                        <div style={{ display:'flex', gap:8, fontSize:11 }}>
+                          {subtTotal > 0 && <span style={{ color:'#6b7280' }}>✓ {subtComp}/{subtTotal}</span>}
+                          {tarea.fecha_vencimiento && <span style={{ color:vencida?'#dc2626':'#9ca3af' }}>📅 {formatDate(tarea.fecha_vencimiento)}</span>}
+                        </div>
+                        {(tarea.asignado || (tarea as any).asignado_externo) && (() => {
+                          const a = tarea.asignado || (tarea as any).asignado_externo
+                          return <div title={a.nombre} style={{ width:22, height:22, borderRadius:'50%', background:avatarColor(a.nombre), display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'white' }}>
+                            {a.nombre.charAt(0)}
+                          </div>
+                        })()}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {nuevaTareaLista === lista.id ? (
+                  <NuevaTareaInline
+                    onCrear={(titulo: string) => crearTarea(lista.id, titulo)}
+                    onCancelar={() => setNuevaTareaLista(null)}
+                  />
+                ) : (
+                  <button onClick={() => setNuevaTareaLista(lista.id)}
+                    style={{ width:'100%', background:'none', border:'1px dashed #e5e7eb', borderRadius:10, padding:'8px', cursor:'pointer', color:'#9ca3af', fontSize:12, textAlign:'left' }}>
+                    + Agregar tarea
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-        </div>
-      </div>
-
-      {/* Modal de tarea — completo como el admin */}
+      {/* Modal de tarea */}
       {tareaModal && (
         <TareaModalExterno
           tarea={tareaModal}
@@ -223,6 +220,7 @@ export default function ProyectoPublicoPage({ params }: { params: { token: strin
     </div>
   )
 }
+
 
 
 // ── Mis Tareas Externo ────────────────────────────────────────────────────
