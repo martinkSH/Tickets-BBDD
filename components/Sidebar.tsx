@@ -82,6 +82,11 @@ export default function Sidebar({ perfil }: Props) {
         <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Gestión</p>
         <div className="space-y-0.5 mb-5">{gestion.map(i => <NavLink key={i.href} {...i} />)}</div>
 
+        <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Proyectos</p>
+        <div className="space-y-0.5 mb-5">
+          <NavLink href="/proyectos" label="Proyectos" icon={<Icon d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />} />
+        </div>
+
         {(['admin','responsable IT','responsable IT/BBDD'].includes(perfil.rol)) && (<>
           <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Soporte IT</p>
           <div className="space-y-0.5 mb-5">
