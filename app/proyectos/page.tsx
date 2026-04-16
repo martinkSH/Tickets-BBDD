@@ -588,6 +588,7 @@ function TareaCard({ tarea, onDragStart, onDragEnd, onClick }: { tarea: Tarea; o
 // ── Tarea Detalle Modal ───────────────────────────────────────────────────
 function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proyectoId, onClose, onUpdated, onDeleted }: any) {
   const [tarea, setTarea] = useState<Tarea>(tareaInicial)
+  const [etiquetas, setEtiquetas] = useState<string[]>(tareaInicial.etiquetas || [])
   const [nuevoComentario, setNuevoComentario] = useState('')
   const [nuevaSubtarea, setNuevaSubtarea] = useState('')
   const [saving, setSaving] = useState(false)
@@ -597,7 +598,7 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
   useEffect(() => {
     setMounted(true)
     // Cargar tarea completa
-    fetch('/api/proyectos/tareas/' + tarea.id).then(r => r.json()).then(data => { if (!data.error) setTarea(data) })
+    fetch('/api/proyectos/tareas/' + tarea.id).then(r => r.json()).then(data => { if (!data.error) { setTarea(data); setEtiquetas(data.etiquetas || []) } })
     // Cargar colaboradores externos del proyecto
     if (proyectoId) {
       fetch('/api/proyectos/externos?proyecto_id=' + proyectoId)
@@ -842,11 +843,14 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
             <div>
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Etiquetas</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:6 }}>
-                {(tarea.etiquetas||[]).map(et => (
+                {etiquetas.map(et => (
                   <span key={et} style={{ background:'#ede9fe', color:'#7c3aed', borderRadius:6, padding:'3px 8px', fontSize:11, fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
                     {et}
-                    <button onClick={() => guardar({ etiquetas: (tarea.etiquetas||[]).filter(e => e!==et) })}
-                      style={{ background:'none', border:'none', cursor:'pointer', color:'#7c3aed', padding:0, lineHeight:1, fontSize:13 }}>×</button>
+                    <button onClick={() => {
+                      const nuevas = etiquetas.filter(e => e !== et)
+                      setEtiquetas(nuevas)
+                      guardar({ etiquetas: nuevas })
+                    }} style={{ background:'none', border:'none', cursor:'pointer', color:'#7c3aed', padding:0, lineHeight:1, fontSize:13 }}>×</button>
                   </span>
                 ))}
               </div>
@@ -854,7 +858,11 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
                 onKeyDown={e => {
                   if (e.key==='Enter' && (e.target as HTMLInputElement).value.trim()) {
                     const val = (e.target as HTMLInputElement).value.trim()
-                    guardar({ etiquetas: [...(tarea.etiquetas||[]), val] });
+                    if (!etiquetas.includes(val)) {
+                      const nuevas = [...etiquetas, val]
+                      setEtiquetas(nuevas)
+                      guardar({ etiquetas: nuevas })
+                    }
                     (e.target as HTMLInputElement).value = ''
                   }
                 }}
