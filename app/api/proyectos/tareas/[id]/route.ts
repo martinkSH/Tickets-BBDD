@@ -26,7 +26,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   
   const updates: Record<string, any> = {}
   for (const k of CAMPOS_TABLA) {
-    if (k in raw) updates[k] = raw[k] ?? null
+    if (k in raw) {
+      // Arrays (etiquetas): guardar aunque estén vacíos, nunca convertir a null
+      if (k === 'etiquetas') {
+        updates[k] = Array.isArray(raw[k]) ? raw[k] : []
+      } else {
+        updates[k] = raw[k] ?? null
+      }
+    }
   }
 
   // Si viene asignado_externo_id, limpiar asignado_id (es FK a perfiles, no puede ser externo)
