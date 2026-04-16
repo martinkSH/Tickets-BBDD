@@ -358,6 +358,30 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
 
 
 
+          {/* Adjuntos adicionales */}
+          {((ticket as any).adjuntos_urls?.length > 0) && (
+            <div style={{ background:'#f9fafb', borderRadius:10, padding:14 }}>
+              <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>
+                Archivos adjuntos ({(ticket as any).adjuntos_urls.length})
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {((ticket as any).adjuntos_urls as string[]).map((url: string, i: number) => {
+                  const nombre = url.split('/').pop()?.split('?')[0] || `Archivo ${i+1}`
+                  const esImg = url.match(/\.(jpg|jpeg|png|gif|webp)/i)
+                  const esPdf = url.match(/\.pdf/i)
+                  return (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'white', borderRadius:8, border:'1px solid #e5e7eb', textDecoration:'none', color:'#374151', fontSize:13 }}>
+                      <span style={{ fontSize:18 }}>{esImg ? '🖼️' : esPdf ? '📕' : '📎'}</span>
+                      <span style={{ flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{decodeURIComponent(nombre)}</span>
+                      <span style={{ fontSize:11, color:'#4f6ef7', fontWeight:600, flexShrink:0 }}>Ver →</span>
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <hr style={{ border:'none', borderTop:'1px solid #f0f0f0' }}/>
 
           {/* Gestión */}
