@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const inputCls = "w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -23,9 +23,13 @@ export default function NuevoTicketITPage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [files, setFiles] = useState<File[]>([])
+  // Editor de bloques: texto e imágenes intercalados
+  type Bloque = { id: string; tipo: 'texto' | 'imagen'; texto?: string; file?: File; url?: string }
+  const [bloques, setBloques] = useState<Bloque[]>([
+    { id: 'b0', tipo: 'texto', texto: '' }
+  ])
   const fileRef = useRef<HTMLInputElement>(null)
-  const MAX_IMAGES = 5
+  const insertImgAfterRef = useRef<string|null>(null) // ID del bloque después del cual insertar
 
   const [form, setForm] = useState({
     mail_solicitante: '', sistema: '' as Sistema,
@@ -43,17 +47,47 @@ export default function NuevoTicketITPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  // Paste imágenes — hasta MAX_IMAGES
+  // ── helpers de bloques ────────────────────────────────────────────────────
+  const uid = () => Math.random().toString(36).slice(2)
+
+  const insertarImagen = (file: File, despuesDeId: string | null) => {
+    setBloques(prev => {
+      const bloqueImg: Bloque = { id: uid(), tipo: 'imagen', file }
+      const bloqueTexto: Bloque = { id: uid(), tipo: 'texto', texto: '' }
+      if (!despuesDeId) return [...prev, bloqueImg, bloqueTexto]
+      const idx = prev.findIndex(b => b.id === despuesDeId)
+      const pos = idx >= 0 ? idx + 1 : prev.length
+      const nuevo = [...prev]
+      nuevo.splice(pos, 0, bloqueImg, bloqueTexto)
+      return nuevo
+    })
+  }
+
+  const actualizarTexto = (id: string, texto: string) => {
+    setBloques(prev => prev.map(b => b.id === id ? { ...b, texto } : b))
+  }
+
+  const eliminarBloque = (id: string) => {
+    setBloques(prev => {
+      const filtered = prev.filter(b => b.id !== id)
+      // Siempre debe haber al menos un bloque de texto
+      return filtered.length === 0 ? [{ id: uid(), tipo: 'texto', texto: '' }] : filtered
+    })
+  }
+
+  // Paste global — detecta en qué textarea está el cursor
+  const activeTextareaIdRef = useRef<string|null>(null)
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items
       if (!items) return
       for (const item of Array.from(items)) {
         if (item.type.startsWith('image/')) {
+          e.preventDefault()
           const blob = item.getAsFile()
           if (blob) {
-            const newFile = new File([blob], `captura-${Date.now()}.png`, { type: blob.type })
-            setFiles(prev => prev.length < MAX_IMAGES ? [...prev, newFile] : prev)
+            const f = new File([blob], `captura-${Date.now()}.png`, { type: blob.type })
+            insertarImagen(f, activeTextareaIdRef.current)
           }
           break
         }
@@ -63,16 +97,21 @@ export default function NuevoTicketITPage() {
     return () => window.removeEventListener('paste', handlePaste)
   }, [])
 
-  const agregarArchivos = (newFiles: FileList | null) => {
-    if (!newFiles) return
-    setFiles(prev => {
-      const combined = [...prev]
-      for (const f of Array.from(newFiles)) {
-        if (combined.length >= MAX_IMAGES) break
-        if (f.type.startsWith('image/') || f.type === 'application/pdf') combined.push(f)
+  // Construir descripción y archivos al hacer submit
+  const buildDescripcionYFiles = () => {
+    const partes: string[] = []
+    const archivos: File[] = []
+    let imgIdx = 0
+    for (const b of bloques) {
+      if (b.tipo === 'texto' && b.texto?.trim()) {
+        partes.push(b.texto.trim())
+      } else if (b.tipo === 'imagen' && b.file) {
+        imgIdx++
+        partes.push(`[Imagen ${imgIdx}]`)
+        archivos.push(b.file)
       }
-      return combined
-    })
+    }
+    return { descripcion: partes.join('\n'), archivos }
   }
 
   const moduloTPesPCMFITS = ['COTIZ.PCM','FITS','GRUPOS'].includes(form.modulo_tourplan)
@@ -80,16 +119,17 @@ export default function NuevoTicketITPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.mail_solicitante || !form.sistema || !form.descripcion) {
-      setError('Completá los campos obligatorios.'); return
+    const { descripcion: desc, archivos } = buildDescripcionYFiles()
+    if (!form.mail_solicitante || !form.sistema || !desc) {
+      setError('Completá los campos obligatorios: mail, sistema y descripción.'); return
     }
     setLoading(true); setError('')
 
     const imagenes_urls: string[] = []
-    if (files.length > 0) {
+    if (archivos.length > 0) {
       setUploading(true)
       const sb = createClient()
-      for (const f of files) {
+      for (const f of archivos) {
         const ext = f.name.split('.').pop()
         const path = `tickets-it/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
         const { error: upErr } = await sb.storage.from('adjuntos').upload(path, f)
@@ -103,7 +143,7 @@ export default function NuevoTicketITPage() {
 
     const res = await fetch('/api/tickets-it', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, imagen_url: imagenes_urls[0]||'', imagenes_urls }),
+      body: JSON.stringify({ ...form, descripcion: desc, imagen_url: imagenes_urls[0]||'', imagenes_urls }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error||'Error al enviar'); setLoading(false); return }
@@ -247,57 +287,85 @@ export default function NuevoTicketITPage() {
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
               <h2 className="text-base font-semibold text-slate-800 mb-4">📝 Descripción</h2>
               <div className="flex flex-col gap-4">
-                <Field label="Descripción completa del error" req>
-                  <textarea value={form.descripcion} onChange={set('descripcion')} rows={5} className={inputCls}
-                    placeholder="Describí con detalle qué pasó, cómo reproducirlo y qué esperabas que pasara…" style={{ resize: 'vertical' }} />
-                </Field>
+                {/* Editor de bloques: texto + imágenes intercaladas */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Descripción completa del error <span className="text-red-400">*</span>
+                    <span className="text-xs text-slate-400 ml-2">Podés pegar imágenes con Ctrl+V dentro de cualquier bloque de texto</span>
+                  </label>
+                  <input ref={fileRef} type="file" style={{ display:'none' }} accept="image/*"
+                    onChange={e => {
+                      const f = e.target.files?.[0]
+                      if (f) insertarImagen(f, insertImgAfterRef.current)
+                    }} />
 
-                {/* Adjuntos — hasta 5 imágenes */}
-                <Field label={`Imágenes adjuntas (${files.length}/${MAX_IMAGES})`}>
-                  {/* Preview de imágenes ya cargadas */}
-                  {files.length > 0 && (
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:10 }}>
-                      {files.map((f, i) => (
-                        <div key={i} style={{ position:'relative', border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', background:'#f8fafc' }}>
-                          {f.type.startsWith('image/') ? (
-                            <img src={URL.createObjectURL(f)} alt={f.name}
-                              style={{ width:100, height:80, objectFit:'cover', display:'block' }} />
-                          ) : (
-                            <div style={{ width:100, height:80, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
-                              <span style={{ fontSize:24 }}>📄</span>
-                              <span style={{ fontSize:10, color:'#6b7280', textAlign:'center', padding:'0 4px' }}>{f.name.slice(0,14)}</span>
-                            </div>
-                          )}
-                          <button type="button"
-                            onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}
-                            style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,0.5)', border:'none', borderRadius:'50%', width:18, height:18, color:'white', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Zona de drop */}
-                  {files.length < MAX_IMAGES && (
-                    <div
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={e => { e.preventDefault(); agregarArchivos(e.dataTransfer.files) }}
-                      onClick={() => fileRef.current?.click()}
-                      style={{
-                        border: '2px dashed #e2e8f0', borderRadius: 10, padding: '14px',
-                        textAlign: 'center', cursor: 'pointer', background: '#fafafa',
-                        transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor='#93c5fd'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor='#e2e8f0'}>
-                      <input ref={fileRef} type="file" style={{ display:'none' }} accept="image/*,.pdf" multiple
-                        onChange={e => agregarArchivos(e.target.files)} />
-                      <p style={{ margin:0, fontSize:13, color:'#6b7280' }}>
-                        <span style={{ fontWeight:600, color:'#3b82f6' }}>Click</span>, arrastrá o pegá{' '}
-                        <span style={{ fontWeight:600, color:'#3b82f6' }}>Ctrl+V</span>
-                        {' '}— hasta {MAX_IMAGES} imágenes
-                      </p>
-                    </div>
-                  )}
-                </Field>
+                  <div style={{ border:'1px solid #e2e8f0', borderRadius:10, overflow:'hidden', background:'white' }}>
+                    {bloques.map((bloque, idx) => (
+                      <div key={bloque.id}>
+                        {bloque.tipo === 'texto' ? (
+                          <div style={{ position:'relative' }}>
+                            <textarea
+                              value={bloque.texto}
+                              onChange={e => actualizarTexto(bloque.id, e.target.value)}
+                              onFocus={() => { activeTextareaIdRef.current = bloque.id }}
+                              onDragOver={e => e.preventDefault()}
+                              onDrop={e => {
+                                e.preventDefault()
+                                const f = e.dataTransfer.files[0]
+                                if (f?.type.startsWith('image/')) insertarImagen(f, bloque.id)
+                              }}
+                              placeholder={idx === 0 ? 'Describí el problema... (podés pegar imágenes con Ctrl+V)' : 'Continuá describiendo...'}
+                              rows={idx === 0 ? 4 : 2}
+                              style={{
+                                width:'100%', border:'none', outline:'none', resize:'none',
+                                padding:'12px 14px', fontSize:14, fontFamily:'inherit',
+                                boxSizing:'border-box', background:'transparent', lineHeight:1.6,
+                                borderBottom: idx < bloques.length-1 ? '1px solid #f1f5f9' : 'none',
+                              }}
+                            />
+                            {/* Botón para insertar imagen después de este bloque */}
+                            <button
+                              type="button"
+                              title="Insertar imagen aquí"
+                              onClick={() => { insertImgAfterRef.current = bloque.id; fileRef.current?.click() }}
+                              style={{
+                                position:'absolute', bottom:6, right:8,
+                                background:'#f1f5f9', border:'1px solid #e2e8f0', borderRadius:6,
+                                padding:'3px 8px', cursor:'pointer', fontSize:11, color:'#6b7280',
+                                display:'flex', alignItems:'center', gap:4, opacity:0.7,
+                              }}
+                              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity='1'}
+                              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity='0.7'}>
+                              📷 imagen
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ position:'relative', background:'#f8fafc', borderBottom: idx < bloques.length-1 ? '1px solid #f1f5f9' : 'none' }}>
+                            {bloque.file && (
+                              <img
+                                src={URL.createObjectURL(bloque.file)}
+                                alt="Imagen adjunta"
+                                style={{ maxWidth:'100%', maxHeight:400, display:'block', margin:'0 auto', padding:'8px' }}
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => eliminarBloque(bloque.id)}
+                              style={{
+                                position:'absolute', top:6, right:8,
+                                background:'rgba(0,0,0,0.5)', border:'none', borderRadius:'50%',
+                                width:22, height:22, color:'white', cursor:'pointer', fontSize:14,
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                              }}>×</button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ margin:'6px 0 0', fontSize:11, color:'#9ca3af' }}>
+                    💡 Pegá capturas de pantalla con <strong>Ctrl+V</strong>, arrastrá imágenes, o usá el botón 📷 para insertarlas entre el texto
+                  </p>
+                </div>
               </div>
             </div>
           )}
