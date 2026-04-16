@@ -50,12 +50,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .eq('activo', true)
 
   // Recopilar todos los destinatarios únicos
-  const destinatarios = new Map<string, string>()
-  ;(miembros || []).forEach((m: any) => { if (m.perfil?.mail) destinatarios.set(m.perfil.mail, m.perfil.nombre) })
-  ;(externos || []).forEach((e: any) => { if (e.mail) destinatarios.set(e.mail, e.nombre) })
-  if (proyecto.creador?.mail) destinatarios.set(proyecto.creador.mail, proyecto.creador.nombre)
+  const destinatarios: Record<string, string> = {}
+  ;(miembros || []).forEach((m: any) => { if (m.perfil?.mail) destinatarios[m.perfil.mail] = m.perfil.nombre })
+  ;(externos || []).forEach((e: any) => { if (e.mail) destinatarios[e.mail] = e.nombre })
+  if (proyecto.creador?.mail) destinatarios[proyecto.creador.mail] = proyecto.creador.nombre
 
-  if (destinatarios.size === 0) return NextResponse.json({ ok: true, mensaje: 'Proyecto finalizado sin destinatarios' })
+  const totalDest = Object.keys(destinatarios).length
+  if (totalDest === 0) return NextResponse.json({ ok: true, mensaje: 'Proyecto finalizado sin destinatarios' })
 
   // Construir el resumen de tareas por lista
   const totalTareas = (listas || []).reduce((s: number, l: any) => s + (l.tareas?.length || 0), 0)
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   // Participantes
-  const participantesHTML = Array.from(destinatarios.entries()).map(([mail, nombre]) =>
+  const participantesHTML = Object.entries(destinatarios).map(([mail, nombre]) =>
     `<span style="display:inline-block;background:#f3f4f6;border-radius:20px;padding:3px 10px;font-size:12px;margin:2px">${esc(nombre)}</span>`
   ).join(' ')
 
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Enviar a todos los participantes
   const transporter = createTransport({ service:'gmail', auth:{ user:process.env.GMAIL_USER, pass:process.env.GMAIL_APP_PASSWORD }})
   const errores: string[] = []
-  for (const [mail, nombre] of destinatarios) {
+  for (const [mail, nombre] of Object.entries(destinatarios)) {
     try {
       await transporter.sendMail({
         from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
@@ -183,5 +184,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  return NextResponse.json({ ok: true, destinatarios: destinatarios.size, errores })
+  return NextResponse.json({ ok: true, destinatarios: totalDest, errores })
 }
