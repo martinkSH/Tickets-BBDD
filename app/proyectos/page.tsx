@@ -130,6 +130,7 @@ export default function ProyectosPage() {
         {view === 'home' ? (
           <HomeView
             espacios={espacios} proyectos={proyectos} loading={loading}
+            perfil={perfil}
             onAbrirProyecto={abrirProyecto}
             onNuevoProyecto={() => setShowNuevoProyecto(true)}
             onRecargar={cargarDatos}
@@ -186,7 +187,8 @@ export default function ProyectosPage() {
 }
 
 // ── Home View ─────────────────────────────────────────────────────────────
-function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyecto, onRecargar, onEliminar }: any) {
+function HomeView({ espacios, proyectos, loading, perfil, onAbrirProyecto, onNuevoProyecto, onRecargar, onEliminar }: any) {
+  const esAdmin = perfil?.rol === 'admin'
   const porEspacio = espacios.map((e: Espacio) => ({
     ...e,
     proyectos: proyectos.filter((p: Proyecto) => p.espacio_id === e.id),
@@ -200,21 +202,32 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
           <h1 style={{ margin:0, fontSize:26, fontWeight:700, color:'#111827' }}>Proyectos</h1>
           <p style={{ margin:'4px 0 0', fontSize:13, color:'#9ca3af' }}>{proyectos.length} proyectos activos</p>
         </div>
-        <button onClick={onNuevoProyecto}
-          style={{ display:'flex', alignItems:'center', gap:6, background:'#4f6ef7', color:'white', border:'none', borderRadius:10, padding:'10px 20px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nuevo Proyecto
-        </button>
+        {esAdmin && (
+          <button onClick={onNuevoProyecto}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'#4f6ef7', color:'white', border:'none', borderRadius:10, padding:'10px 20px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo Proyecto
+          </button>
+        )}
       </div>
 
       {loading ? (
         <div style={{ textAlign:'center', padding:80, color:'#9ca3af' }}>Cargando proyectos…</div>
       ) : proyectos.length === 0 ? (
         <div style={{ textAlign:'center', padding:80 }}>
-          <p style={{ fontSize:48, marginBottom:16 }}>📋</p>
-          <p style={{ fontSize:18, fontWeight:600, color:'#374151', margin:'0 0 8px' }}>Sin proyectos aún</p>
-          <p style={{ fontSize:14, color:'#9ca3af', margin:'0 0 20px' }}>Creá tu primer proyecto para empezar</p>
-          <button onClick={onNuevoProyecto} style={{ background:'#4f6ef7', color:'white', border:'none', borderRadius:10, padding:'10px 24px', fontSize:14, fontWeight:600, cursor:'pointer' }}>Crear proyecto</button>
+          <p style={{ fontSize:48, marginBottom:16 }}>{esAdmin ? '📋' : '🔒'}</p>
+          {esAdmin ? (
+            <>
+              <p style={{ fontSize:18, fontWeight:600, color:'#374151', margin:'0 0 8px' }}>Sin proyectos aún</p>
+              <p style={{ fontSize:14, color:'#9ca3af', margin:'0 0 20px' }}>Creá tu primer proyecto para empezar</p>
+              <button onClick={onNuevoProyecto} style={{ background:'#4f6ef7', color:'white', border:'none', borderRadius:10, padding:'10px 24px', fontSize:14, fontWeight:600, cursor:'pointer' }}>Crear proyecto</button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize:18, fontWeight:600, color:'#374151', margin:'0 0 8px' }}>Sin proyectos asignados</p>
+              <p style={{ fontSize:14, color:'#9ca3af' }}>Cuando te agreguen a un proyecto vas a poder verlo acá.</p>
+            </>
+          )}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:32 }}>
@@ -226,7 +239,7 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
                 <span style={{ fontSize:12, color:'#9ca3af', background:'#f3f4f6', borderRadius:20, padding:'2px 8px' }}>{e.proyectos.length}</span>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:14 }}>
-                {e.proyectos.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} />)}
+                {e.proyectos.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} esAdmin={esAdmin} />)}
               </div>
             </div>
           ))}
@@ -234,7 +247,7 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
             <div>
               <h2 style={{ fontSize:15, fontWeight:700, color:'#374151', marginBottom:14 }}>Sin espacio</h2>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:14 }}>
-                {sinEspacio.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} />)}
+                {sinEspacio.map((p: Proyecto) => <ProyectoCard key={p.id} proyecto={p} onClick={() => onAbrirProyecto(p)} onEliminar={() => onEliminar(p)} esAdmin={esAdmin} />)}
               </div>
             </div>
           )}
@@ -244,7 +257,7 @@ function HomeView({ espacios, proyectos, loading, onAbrirProyecto, onNuevoProyec
   )
 }
 
-function ProyectoCard({ proyecto, onClick, onEliminar }: { proyecto: Proyecto; onClick: () => void; onEliminar: () => void }) {
+function ProyectoCard({ proyecto, onClick, onEliminar, esAdmin }: { proyecto: Proyecto; onClick: () => void; onEliminar: () => void; esAdmin?: boolean }) {
   const estadoCfg = ESTADO_PROYECTO_CFG[proyecto.estado] || ESTADO_PROYECTO_CFG.activo
   const [menu, setMenu] = useState(false)
   return (
@@ -258,22 +271,24 @@ function ProyectoCard({ proyecto, onClick, onEliminar }: { proyecto: Proyecto; o
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <span style={{ background:estadoCfg.bg, color:estadoCfg.color, borderRadius:20, padding:'2px 8px', fontSize:11, fontWeight:600 }}>{estadoCfg.label}</span>
-          <div style={{ position:'relative' }}>
-            <button onClick={e => { e.stopPropagation(); setMenu(m => !m) }}
-              style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18, lineHeight:1, padding:'2px 6px', borderRadius:6 }}>⋯</button>
-            {menu && (
-              <div style={{ position:'absolute', right:0, top:'100%', background:'white', borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.15)', border:'1px solid #f0f0f0', zIndex:100, minWidth:140, overflow:'hidden' }}>
-                <button onClick={e => { e.stopPropagation(); onClick() }}
-                  style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#374151' }}>
-                  📋 Abrir
-                </button>
-                <button onClick={e => { e.stopPropagation(); if(confirm(`¿Eliminar "${proyecto.nombre}"? Esta acción no se puede deshacer.`)) onEliminar() }}
-                  style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#dc2626' }}>
-                  🗑️ Eliminar proyecto
-                </button>
-              </div>
-            )}
-          </div>
+          {esAdmin && (
+            <div style={{ position:'relative' }}>
+              <button onClick={e => { e.stopPropagation(); setMenu(m => !m) }}
+                style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18, lineHeight:1, padding:'2px 6px', borderRadius:6 }}>⋯</button>
+              {menu && (
+                <div style={{ position:'absolute', right:0, top:'100%', background:'white', borderRadius:8, boxShadow:'0 4px 20px rgba(0,0,0,0.15)', border:'1px solid #f0f0f0', zIndex:100, minWidth:140, overflow:'hidden' }}>
+                  <button onClick={e => { e.stopPropagation(); onClick() }}
+                    style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#374151' }}>
+                    📋 Abrir
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); if(confirm(`¿Eliminar "${proyecto.nombre}"? Esta acción no se puede deshacer.`)) onEliminar() }}
+                    style={{ width:'100%', padding:'9px 14px', textAlign:'left', background:'none', border:'none', cursor:'pointer', fontSize:13, color:'#dc2626' }}>
+                    🗑️ Eliminar proyecto
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div onClick={onClick}>
