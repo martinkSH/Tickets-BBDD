@@ -3,10 +3,31 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET() {
   const supabase = createClient()
-  const { data, error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json([], { status: 200 })
+
+  // Obtener rol del usuario
+  const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
+  const esAdmin = perfil?.rol === 'admin'
+
+  let query = supabase
     .from('proyectos')
     .select(`*, espacio:espacio_id(id,nombre,color,icono), creador:creador_id(nombre), miembros:proyectos_miembros(perfil_id, perfil:perfil_id(nombre,mail))`)
     .order('created_at', { ascending: false })
+
+  // Admin ve todos; el resto solo ve los que tiene como miembro
+  if (!esAdmin) {
+    // Primero obtener IDs de proyectos donde el usuario es miembro
+    const { data: membresias } = await supabase
+      .from('proyectos_miembros')
+      .select('proyecto_id')
+      .eq('perfil_id', user.id)
+    const ids = (membresias || []).map((m: any) => m.proyecto_id)
+    if (!ids.length) return NextResponse.json([])
+    query = query.in('id', ids)
+  }
+
+  const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
