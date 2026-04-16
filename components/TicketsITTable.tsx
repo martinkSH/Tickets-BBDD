@@ -318,9 +318,36 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
             <p style={{ margin:0, fontSize:13, color:'#374151', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{ticket.descripcion}</p>
           </div>
 
-          {ticket.imagen_url && (
-            <a href={ticket.imagen_url} target="_blank" rel="noopener noreferrer" style={{ fontSize:13, color:'#4f6ef7' }}>Ver adjunto →</a>
-          )}
+          {/* Galería de imágenes */}
+          {(() => {
+            const imgs: string[] = (ticket as any).imagenes_urls?.length
+              ? (ticket as any).imagenes_urls
+              : ticket.imagen_url ? [ticket.imagen_url] : []
+            if (!imgs.length) return null
+            return (
+              <div>
+                <p style={{ margin:'0 0 8px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>
+                  Imágenes adjuntas ({imgs.length})
+                </p>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                  {imgs.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      style={{ display:'block', border:'1px solid #e5e7eb', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+                      {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        <img src={url} alt={`Imagen ${i+1}`}
+                          style={{ width:120, height:90, objectFit:'cover', display:'block' }} />
+                      ) : (
+                        <div style={{ width:120, height:90, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#f9fafb', gap:4 }}>
+                          <span style={{ fontSize:28 }}>📄</span>
+                          <span style={{ fontSize:11, color:'#4f6ef7' }}>Ver archivo {i+1}</span>
+                        </div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           <hr style={{ border:'none', borderTop:'1px solid #f0f0f0' }}/>
 
