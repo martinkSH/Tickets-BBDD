@@ -312,42 +312,51 @@ function TicketITModal({ ticket, responsables, perfil, saving, onClose, onSave }
             {row('Link Itinerario', ticket.link_itinerario)}
           </div>
 
-          {/* Descripción */}
+          {/* Descripción con imágenes intercaladas */}
           <div style={{ background:'#f9fafb', borderRadius:10, padding:14 }}>
-            <p style={{ margin:'0 0 6px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>Descripción</p>
-            <p style={{ margin:0, fontSize:13, color:'#374151', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{ticket.descripcion}</p>
+            <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>Descripción</p>
+            {(() => {
+              const imgs: string[] = (ticket as any).imagenes_urls?.length
+                ? (ticket as any).imagenes_urls
+                : ticket.imagen_url ? [ticket.imagen_url] : []
+              const partes = (ticket.descripcion || '').split(/\[Imagen (\d+)\]/g)
+              const elementos: React.ReactNode[] = []
+              let imgUsada = 0
+              partes.forEach((parte, i) => {
+                if (i % 2 === 0) {
+                  // texto
+                  if (parte.trim()) elementos.push(
+                    <p key={`t${i}`} style={{ margin:'0 0 8px', fontSize:13, color:'#374151', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{parte}</p>
+                  )
+                } else {
+                  // número de imagen
+                  const numImg = parseInt(parte) - 1
+                  const url = imgs[numImg]
+                  if (url) {
+                    elementos.push(
+                      <a key={`img${i}`} href={url} target="_blank" rel="noopener noreferrer" style={{ display:'block', margin:'8px 0' }}>
+                        <img src={url} alt={`Imagen ${numImg+1}`}
+                          style={{ maxWidth:'100%', maxHeight:400, borderRadius:8, border:'1px solid #e5e7eb', cursor:'zoom-in' }} />
+                      </a>
+                    )
+                    imgUsada++
+                  }
+                }
+              })
+              // Imágenes que no tienen marcador en el texto (subidas separadas)
+              imgs.slice(imgUsada).forEach((url, i) => {
+                elementos.push(
+                  <a key={`extra${i}`} href={url} target="_blank" rel="noopener noreferrer" style={{ display:'block', margin:'8px 0' }}>
+                    <img src={url} alt={`Imagen ${imgUsada+i+1}`}
+                      style={{ maxWidth:'100%', maxHeight:400, borderRadius:8, border:'1px solid #e5e7eb', cursor:'zoom-in' }} />
+                  </a>
+                )
+              })
+              return <div>{elementos}</div>
+            })()}
           </div>
 
-          {/* Galería de imágenes */}
-          {(() => {
-            const imgs: string[] = (ticket as any).imagenes_urls?.length
-              ? (ticket as any).imagenes_urls
-              : ticket.imagen_url ? [ticket.imagen_url] : []
-            if (!imgs.length) return null
-            return (
-              <div>
-                <p style={{ margin:'0 0 8px', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase' }}>
-                  Imágenes adjuntas ({imgs.length})
-                </p>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                  {imgs.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                      style={{ display:'block', border:'1px solid #e5e7eb', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
-                      {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                        <img src={url} alt={`Imagen ${i+1}`}
-                          style={{ width:120, height:90, objectFit:'cover', display:'block' }} />
-                      ) : (
-                        <div style={{ width:120, height:90, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#f9fafb', gap:4 }}>
-                          <span style={{ fontSize:28 }}>📄</span>
-                          <span style={{ fontSize:11, color:'#4f6ef7' }}>Ver archivo {i+1}</span>
-                        </div>
-                      )}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
+
 
           <hr style={{ border:'none', borderTop:'1px solid #f0f0f0' }}/>
 
