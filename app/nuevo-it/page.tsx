@@ -23,8 +23,9 @@ export default function NuevoTicketITPage() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [file, setFile] = useState<File|null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  const MAX_IMAGES = 5
 
   const [form, setForm] = useState({
     mail_solicitante: '', sistema: '' as Sistema,
@@ -42,7 +43,7 @@ export default function NuevoTicketITPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  // Paste imagen
+  // Paste imágenes — hasta MAX_IMAGES
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items
@@ -50,7 +51,10 @@ export default function NuevoTicketITPage() {
       for (const item of Array.from(items)) {
         if (item.type.startsWith('image/')) {
           const blob = item.getAsFile()
-          if (blob) setFile(new File([blob], `captura-${Date.now()}.png`, { type: blob.type }))
+          if (blob) {
+            const newFile = new File([blob], `captura-${Date.now()}.png`, { type: blob.type })
+            setFiles(prev => prev.length < MAX_IMAGES ? [...prev, newFile] : prev)
+          }
           break
         }
       }
@@ -58,6 +62,18 @@ export default function NuevoTicketITPage() {
     window.addEventListener('paste', handlePaste)
     return () => window.removeEventListener('paste', handlePaste)
   }, [])
+
+  const agregarArchivos = (newFiles: FileList | null) => {
+    if (!newFiles) return
+    setFiles(prev => {
+      const combined = [...prev]
+      for (const f of Array.from(newFiles)) {
+        if (combined.length >= MAX_IMAGES) break
+        if (f.type.startsWith('image/') || f.type === 'application/pdf') combined.push(f)
+      }
+      return combined
+    })
+  }
 
   const moduloTPesPCMFITS = ['COTIZ.PCM','FITS','GRUPOS'].includes(form.modulo_tourplan)
   const moduloTPesOtros = ['CLIENTES','PROVEEDORES','CONFIG. DE PRODUCTO'].includes(form.modulo_tourplan)
@@ -69,23 +85,25 @@ export default function NuevoTicketITPage() {
     }
     setLoading(true); setError('')
 
-    let imagen_url = ''
-    if (file) {
+    const imagenes_urls: string[] = []
+    if (files.length > 0) {
       setUploading(true)
       const sb = createClient()
-      const ext = file.name.split('.').pop()
-      const path = `tickets-it/${Date.now()}.${ext}`
-      const { error: upErr } = await sb.storage.from('adjuntos').upload(path, file)
-      if (!upErr) {
-        const { data } = sb.storage.from('adjuntos').getPublicUrl(path)
-        imagen_url = data.publicUrl
+      for (const f of files) {
+        const ext = f.name.split('.').pop()
+        const path = `tickets-it/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: upErr } = await sb.storage.from('adjuntos').upload(path, f)
+        if (!upErr) {
+          const { data } = sb.storage.from('adjuntos').getPublicUrl(path)
+          imagenes_urls.push(data.publicUrl)
+        }
       }
       setUploading(false)
     }
 
     const res = await fetch('/api/tickets-it', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, imagen_url }),
+      body: JSON.stringify({ ...form, imagen_url: imagenes_urls[0]||'', imagenes_urls }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error||'Error al enviar'); setLoading(false); return }
@@ -234,34 +252,51 @@ export default function NuevoTicketITPage() {
                     placeholder="Describí con detalle qué pasó, cómo reproducirlo y qué esperabas que pasara…" style={{ resize: 'vertical' }} />
                 </Field>
 
-                {/* Adjunto */}
-                <Field label="Adjunto (opcional)">
-                  <div
-                    onDragOver={e => e.preventDefault()}
-                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setFile(f) }}
-                    onClick={() => fileRef.current?.click()}
-                    style={{
-                      border: `2px dashed ${file ? '#22c55e' : '#e2e8f0'}`,
-                      borderRadius: 10, padding: '16px', textAlign: 'center',
-                      cursor: 'pointer', background: file ? '#f0fdf4' : '#fafafa',
-                    }}>
-                    <input ref={fileRef} type="file" style={{ display:'none' }} accept="image/*,.pdf"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
-                    {file ? (
-                      <div className="flex items-center justify-center gap-2">
-                        {file.type.startsWith('image/') && (
-                          <img src={URL.createObjectURL(file)} alt="preview" style={{ maxHeight:60, maxWidth:120, borderRadius:6, objectFit:'contain' }} />
-                        )}
-                        <span className="text-sm text-slate-600 font-medium">{file.name}</span>
-                        <button type="button" onClick={e => { e.stopPropagation(); setFile(null) }}
-                          style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:18 }}>×</button>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500">
-                        <span className="font-semibold text-blue-600">Hacé click</span>, arrastrá o pegá con <span className="font-semibold text-blue-600">Ctrl+V</span>
+                {/* Adjuntos — hasta 5 imágenes */}
+                <Field label={`Imágenes adjuntas (${files.length}/${MAX_IMAGES})`}>
+                  {/* Preview de imágenes ya cargadas */}
+                  {files.length > 0 && (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:10 }}>
+                      {files.map((f, i) => (
+                        <div key={i} style={{ position:'relative', border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', background:'#f8fafc' }}>
+                          {f.type.startsWith('image/') ? (
+                            <img src={URL.createObjectURL(f)} alt={f.name}
+                              style={{ width:100, height:80, objectFit:'cover', display:'block' }} />
+                          ) : (
+                            <div style={{ width:100, height:80, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
+                              <span style={{ fontSize:24 }}>📄</span>
+                              <span style={{ fontSize:10, color:'#6b7280', textAlign:'center', padding:'0 4px' }}>{f.name.slice(0,14)}</span>
+                            </div>
+                          )}
+                          <button type="button"
+                            onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ position:'absolute', top:3, right:3, background:'rgba(0,0,0,0.5)', border:'none', borderRadius:'50%', width:18, height:18, color:'white', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Zona de drop */}
+                  {files.length < MAX_IMAGES && (
+                    <div
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); agregarArchivos(e.dataTransfer.files) }}
+                      onClick={() => fileRef.current?.click()}
+                      style={{
+                        border: '2px dashed #e2e8f0', borderRadius: 10, padding: '14px',
+                        textAlign: 'center', cursor: 'pointer', background: '#fafafa',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor='#93c5fd'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor='#e2e8f0'}>
+                      <input ref={fileRef} type="file" style={{ display:'none' }} accept="image/*,.pdf" multiple
+                        onChange={e => agregarArchivos(e.target.files)} />
+                      <p style={{ margin:0, fontSize:13, color:'#6b7280' }}>
+                        <span style={{ fontWeight:600, color:'#3b82f6' }}>Click</span>, arrastrá o pegá{' '}
+                        <span style={{ fontWeight:600, color:'#3b82f6' }}>Ctrl+V</span>
+                        {' '}— hasta {MAX_IMAGES} imágenes
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </Field>
               </div>
             </div>
