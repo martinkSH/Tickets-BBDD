@@ -37,7 +37,9 @@ async function enviarMailNuevoTicketIT(t: any, mails: string[]) {
         <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase">Descripción</p>
         <div style="font-size:13px;color:#374151;line-height:1.6;white-space:pre-wrap">${esc(t.descripcion)}</div>
       </div>
-      ${t.imagen_url ? `<div style="padding:10px 14px"><a href="${t.imagen_url}" style="color:#4f6ef7;font-size:13px">Ver adjunto →</a></div>` : ''}
+      ${(t.imagenes_urls?.length > 0 ? t.imagenes_urls : t.imagen_url ? [t.imagen_url] : []).map((url: string, i: number) =>
+        `<div style="padding:4px 14px"><a href="${url}" style="color:#4f6ef7;font-size:13px">📎 Ver imagen ${i+1} →</a></div>`
+      ).join('')}
       <p style="margin:16px 14px;color:#9ca3af;font-size:12px">Say Hueque · Atlas Archive</p>
     </div>
   </div>`
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest) {
     link_itinerario:          body.link_itinerario,
     descripcion:              body.descripcion,
     imagen_url:               body.imagen_url,
+    imagenes_urls:            body.imagenes_urls || [],
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
