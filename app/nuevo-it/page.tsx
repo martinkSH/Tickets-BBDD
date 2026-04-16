@@ -30,6 +30,8 @@ export default function NuevoTicketITPage() {
   ])
   const fileRef = useRef<HTMLInputElement>(null)
   const insertImgAfterRef = useRef<string|null>(null) // ID del bloque después del cual insertar
+  const [adjuntos, setAdjuntos] = useState<File[]>([])
+  const adjuntoRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     mail_solicitante: '', sistema: '' as Sistema,
@@ -125,17 +127,23 @@ export default function NuevoTicketITPage() {
     }
     setLoading(true); setError('')
 
+    const adjuntos_urls: string[] = []
+    const todosArchivos = [...archivos, ...adjuntos]
     const imagenes_urls: string[] = []
-    if (archivos.length > 0) {
+    if (todosArchivos.length > 0) {
       setUploading(true)
       const sb = createClient()
-      for (const f of archivos) {
+      for (const f of todosArchivos) {
         const ext = f.name.split('.').pop()
         const path = `tickets-it/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
         const { error: upErr } = await sb.storage.from('adjuntos').upload(path, f)
         if (!upErr) {
           const { data } = sb.storage.from('adjuntos').getPublicUrl(path)
-          imagenes_urls.push(data.publicUrl)
+          if (archivos.includes(f)) {
+            imagenes_urls.push(data.publicUrl)
+          } else {
+            adjuntos_urls.push(data.publicUrl)
+          }
         }
       }
       setUploading(false)
@@ -143,7 +151,7 @@ export default function NuevoTicketITPage() {
 
     const res = await fetch('/api/tickets-it', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, descripcion: desc, imagen_url: imagenes_urls[0]||'', imagenes_urls }),
+      body: JSON.stringify({ ...form, descripcion: desc, imagen_url: imagenes_urls[0]||'', imagenes_urls, adjuntos_urls }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error||'Error al enviar'); setLoading(false); return }
@@ -365,6 +373,43 @@ export default function NuevoTicketITPage() {
                   <p style={{ margin:'6px 0 0', fontSize:11, color:'#9ca3af' }}>
                     💡 Pegá capturas de pantalla con <strong>Ctrl+V</strong>, arrastrá imágenes, o usá el botón 📷 para insertarlas entre el texto
                   </p>
+                </div>
+
+                {/* Adjuntos adicionales (PDF, docs, etc.) */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Archivos adjuntos adicionales
+                    <span className="text-xs text-slate-400 ml-2">PDF, Excel, Word, etc.</span>
+                  </label>
+                  <input ref={adjuntoRef} type="file" style={{ display:'none' }} multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,image/*"
+                    onChange={e => {
+                      if (!e.target.files) return
+                      setAdjuntos(prev => [...prev, ...Array.from(e.target.files!)])
+                    }} />
+
+                  {adjuntos.length > 0 && (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:8 }}>
+                      {adjuntos.map((f, i) => (
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:6, background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'6px 10px' }}>
+                          <span style={{ fontSize:16 }}>
+                            {f.type.startsWith('image/') ? '🖼️' : f.name.endsWith('.pdf') ? '📕' : f.name.match(/\.xlsx?$/) ? '📗' : f.name.match(/\.docx?$/) ? '📘' : '📎'}
+                          </span>
+                          <span style={{ fontSize:12, color:'#374151', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.name}</span>
+                          <span style={{ fontSize:11, color:'#9ca3af' }}>({(f.size/1024).toFixed(0)}kb)</span>
+                          <button type="button" onClick={() => setAdjuntos(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:16, lineHeight:1, padding:0 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button type="button" onClick={() => adjuntoRef.current?.click()}
+                    style={{ display:'flex', alignItems:'center', gap:6, background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:8, padding:'8px 14px', cursor:'pointer', fontSize:13, color:'#64748b', width:'100%', justifyContent:'center' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='#f1f5f9'; (e.currentTarget as HTMLElement).style.borderColor='#94a3b8' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='#f8fafc'; (e.currentTarget as HTMLElement).style.borderColor='#cbd5e1' }}>
+                    <span>📎</span> Adjuntar archivos
+                  </button>
                 </div>
               </div>
             </div>
