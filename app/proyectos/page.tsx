@@ -379,6 +379,18 @@ function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCr
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           Invitar
         </button>
+        {perfil?.rol === 'admin' && proyecto.estado !== 'completado' && (
+          <button onClick={onFinalizar} style={{ display:'flex', alignItems:'center', gap:5, background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:8, padding:'6px 14px', cursor:'pointer', color:'#7c3aed', fontSize:12, fontWeight:600 }}>
+            🏁 Finalizar
+          </button>
+        )}
+        {proyecto.estado === 'completado' && (
+          <span style={{ background:'#dcfce7', color:'#16a34a', borderRadius:8, padding:'6px 14px', fontSize:12, fontWeight:700 }}>✅ Completado</span>
+        )}
+        {perfil?.rol === 'admin' && (
+          <button onClick={() => { if(confirm('¿Eliminar este proyecto? Esta acción no se puede deshacer.')) onEliminarProyecto() }}
+            style={{ background:'none', border:'1px solid #fecaca', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#dc2626', fontSize:12 }}>🗑️</button>
+        )}
       </div>
 
       {/* Layout: panel izq + kanban */}
