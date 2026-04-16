@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
     descripcion:              body.descripcion,
     imagen_url:               body.imagen_url,
     imagenes_urls:            body.imagenes_urls || [],
+    adjuntos_urls:            body.adjuntos_urls || [],
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
