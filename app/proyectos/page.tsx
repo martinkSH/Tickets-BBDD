@@ -55,6 +55,7 @@ export default function ProyectosPage() {
   const [nuevaTareaLista, setNuevaTareaLista] = useState<string|null>(null)
   const [showNuevoProyecto, setShowNuevoProyecto] = useState(false)
   const [showInvitar, setShowInvitar] = useState(false)
+  const [showFinalizar, setShowFinalizar] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -149,6 +150,7 @@ export default function ProyectosPage() {
             onRecargar={recargarProyecto}
             onInvitar={() => setShowInvitar(true)}
             onEliminarProyecto={async () => { if (proyectoActivo) { await eliminarProyecto(proyectoActivo); setView('home') } }}
+            onFinalizar={() => setShowFinalizar(true)}
             perfil={perfil}
           />
         ) : null}
@@ -160,6 +162,17 @@ export default function ProyectosPage() {
           miembros={miembros}
           onClose={() => setShowNuevoProyecto(false)}
           onCreado={async () => { setShowNuevoProyecto(false); await cargarDatos() }}
+        />
+      )}
+
+      {showFinalizar && proyectoActivo && (
+        <FinalizarProyectoModal
+          proyecto={proyectoActivo}
+          onClose={() => setShowFinalizar(false)}
+          onFinalizado={async () => {
+            setShowFinalizar(false)
+            await recargarProyecto()
+          }}
         />
       )}
 
@@ -316,7 +329,7 @@ function ProyectoCard({ proyecto, onClick, onEliminar, esAdmin }: { proyecto: Pr
 }
 
 // ── Kanban View ───────────────────────────────────────────────────────────
-function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, onInvitar, onEliminarProyecto, perfil }: any) {
+function KanbanView({ proyecto, miembros, nuevaTareaLista, onSetNuevaTarea, onCrearTarea, onMoverTarea, onTareaClick, onVolver, onRecargar, onInvitar, onEliminarProyecto, onFinalizar, perfil }: any) {
   const [dragTarea, setDragTarea] = useState<string|null>(null)
   const [dragOver, setDragOver] = useState<string|null>(null)
   const [nuevaTareaTexto, setNuevaTareaTexto] = useState('')
@@ -1071,6 +1084,121 @@ function InvitarExternoModal({ proyecto, onClose }: { proyecto: any; onClose: ()
             ))}
           </div>
         )}
+      </div>
+    </div>
+  )
+  return mounted ? createPortal(content, document.body) : null
+}
+
+// ── Modal Finalizar Proyecto ──────────────────────────────────────────────
+function FinalizarProyectoModal({ proyecto, onClose, onFinalizado }: any) {
+  const [enviando, setEnviando] = useState(false)
+  const [resultado, setResultado] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  useEffect(() => setMounted(true), [])
+  const handleOverlayClick = (e: React.MouseEvent) => { if (e.target === overlayRef.current) onClose() }
+
+  const totalTareas = (proyecto.listas||[]).reduce((s: number, l: any) => s + (l.tareas||[]).length, 0)
+  const completadas = (proyecto.listas||[])
+    .filter((l: any) => l.nombre.toLowerCase().includes('complet'))
+    .reduce((s: number, l: any) => s + (l.tareas||[]).length, 0)
+  const enCurso = totalTareas - completadas
+  const miembros = (proyecto.miembros||[]).length
+
+  const finalizar = async () => {
+    setEnviando(true)
+    const res = await fetch(`/api/proyectos/${proyecto.id}/finalizar`, { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      setResultado(data)
+    }
+    setEnviando(false)
+  }
+
+  const content = (
+    <div ref={overlayRef} onClick={handleOverlayClick}
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(3px)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background:'white', borderRadius:16, width:'100%', maxWidth:480, boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+
+        {/* Header */}
+        <div style={{ background:'linear-gradient(135deg, #064e3b, #065f46)', padding:'24px 28px' }}>
+          <p style={{ margin:0, color:'#6ee7b7', fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em' }}>Atlas Archive · Proyectos</p>
+          <h2 style={{ margin:'6px 0 0', color:'white', fontSize:20, fontWeight:700 }}>
+            {resultado ? '✅ Proyecto finalizado' : '🏁 Finalizar proyecto'}
+          </h2>
+          <p style={{ margin:'4px 0 0', color:'rgba(255,255,255,0.6)', fontSize:14 }}>{proyecto.nombre}</p>
+        </div>
+
+        <div style={{ padding:'24px 28px' }}>
+          {!resultado ? (
+            <>
+              {/* Resumen previo */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:20 }}>
+                {[
+                  { label:'Tareas totales', value: totalTareas, color:'#111827' },
+                  { label:'Completadas', value: completadas, color:'#16a34a' },
+                  { label:'En curso', value: enCurso, color: enCurso > 0 ? '#d97706' : '#16a34a' },
+                ].map(s => (
+                  <div key={s.label} style={{ background:'#f9fafb', borderRadius:10, padding:'12px 14px', textAlign:'center' }}>
+                    <p style={{ margin:0, fontSize:24, fontWeight:700, color:s.color }}>{s.value}</p>
+                    <p style={{ margin:'4px 0 0', fontSize:11, color:'#9ca3af' }}>{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {enCurso > 0 && (
+                <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'12px 14px', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start' }}>
+                  <span style={{ fontSize:18 }}>⚠️</span>
+                  <div>
+                    <p style={{ margin:'0 0 2px', fontSize:13, fontWeight:600, color:'#92400e' }}>Hay {enCurso} tarea{enCurso!==1?'s':''} sin completar</p>
+                    <p style={{ margin:0, fontSize:12, color:'#92400e' }}>El resumen incluirá el estado actual de todas las tareas.</p>
+                  </div>
+                </div>
+              )}
+
+              <p style={{ margin:'0 0 20px', fontSize:13, color:'#6b7280', lineHeight:1.6 }}>
+                Al finalizar el proyecto se marcará como <strong>Completado</strong> y se enviará un mail de resumen a todos los participantes ({miembros} miembro{miembros!==1?'s':''}) con el detalle completo de tareas, responsables y tiempos.
+              </p>
+
+              <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                <button onClick={onClose}
+                  style={{ padding:'9px 18px', fontSize:13, borderRadius:8, border:'1px solid #e5e7eb', background:'white', cursor:'pointer', color:'#374151' }}>
+                  Cancelar
+                </button>
+                <button onClick={finalizar} disabled={enviando}
+                  style={{ padding:'9px 24px', fontSize:13, fontWeight:600, borderRadius:8, border:'none', background:enviando?'#9ca3af':'#16a34a', color:'white', cursor:enviando?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                  {enviando ? (
+                    <>
+                      <span style={{ display:'inline-block', width:12, height:12, border:'2px solid white', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}></span>
+                      Enviando resumen…
+                    </>
+                  ) : '✅ Finalizar y enviar resumen'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ textAlign:'center', padding:'16px 0 24px' }}>
+                <p style={{ fontSize:48, margin:'0 0 12px' }}>📬</p>
+                <p style={{ fontSize:16, fontWeight:600, color:'#111827', margin:'0 0 6px' }}>Resumen enviado correctamente</p>
+                <p style={{ fontSize:13, color:'#6b7280', margin:0 }}>
+                  Se notificó a <strong>{resultado.destinatarios}</strong> participante{resultado.destinatarios!==1?'s':''}.
+                </p>
+                {resultado.errores?.length > 0 && (
+                  <p style={{ fontSize:12, color:'#dc2626', marginTop:8 }}>
+                    {resultado.errores.length} mail{resultado.errores.length!==1?'s':''} no pudieron enviarse.
+                  </p>
+                )}
+              </div>
+              <button onClick={onFinalizado}
+                style={{ width:'100%', padding:'10px', fontSize:13, fontWeight:600, borderRadius:8, border:'none', background:'#4f6ef7', color:'white', cursor:'pointer' }}>
+                Volver al proyecto
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
