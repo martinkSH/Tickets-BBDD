@@ -100,6 +100,13 @@ export default function Sidebar({ perfil }: Props) {
           <div className="space-y-0.5 mb-5">{analisis.map(i => <NavLink key={i.href} {...i} />)}</div>
         </>)}
 
+        {perfil.rol !== 'admin' && (<>
+          <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Análisis</p>
+          <div className="space-y-0.5 mb-5">
+            <NavLink href="/mis-estadisticas" label="Mis estadísticas" icon={<Icon d="M3 3v18h18M7 16l4-4 4 4 4-8" />} />
+          </div>
+        </>)}
+
         {perfil.rol === 'admin' && (<>
           <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Sistema</p>
           <div className="space-y-0.5">{config.map(i => <NavLink key={i.href} {...i} />)}</div>
