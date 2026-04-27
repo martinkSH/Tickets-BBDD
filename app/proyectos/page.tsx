@@ -768,8 +768,10 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
             <button onClick={eliminar} style={{ background:'none', border:'1px solid #fecaca', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#dc2626', fontSize:12 }}>Eliminar</button>
             <button onClick={() => {
               // Detectar @menciones en descripción
-              const matches = [...(tarea.descripcion||'').matchAll(/@(\w+)/g)]
-              const nombresM = matches.map(m => m[1].toLowerCase())
+              const regex = /@(\w+)/g
+              const desc = tarea.descripcion || ''
+              const nombresM: string[] = []
+              let m; while ((m = regex.exec(desc)) !== null) { nombresM.push(m[1].toLowerCase()) }
               const mencionados = miembros.filter((m: any) => nombresM.some(n => m.nombre?.toLowerCase().startsWith(n)))
               onUpdated(mencionados.length ? mencionados : undefined)
             }} style={{ background:'#4f6ef7', color:'white', border:'none', borderRadius:8, padding:'6px 16px', cursor:'pointer', fontSize:13, fontWeight:600 }}>Guardar</button>
