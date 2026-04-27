@@ -20,5 +20,16 @@ export async function GET(req: NextRequest) {
     data.listas.sort((a: any, b: any) => a.orden - b.orden)
     data.listas.forEach((l: any) => { if (l.tareas) l.tareas.sort((a: any, b: any) => a.orden - b.orden) })
   }
-  return NextResponse.json({ proyecto: data, colaborador: externo })
+  // Traer miembros internos y externos para mostrar participantes
+  const [{ data: miembros }, { data: otrosExternos }] = await Promise.all([
+    supabase.from('proyectos_miembros').select('perfil:perfil_id(nombre,mail)').eq('proyecto_id', externo.proyecto_id),
+    supabase.from('proyectos_externos').select('nombre,mail,token_personal').eq('proyecto_id', externo.proyecto_id).eq('activo', true),
+  ])
+
+  const participantes = [
+    ...(miembros || []).map((m: any) => ({ nombre: m.perfil?.nombre, mail: m.perfil?.mail, tipo: 'interno' })),
+    ...(otrosExternos || []).map((e: any) => ({ nombre: e.nombre, mail: e.mail, tipo: 'externo' })),
+  ].filter(p => p.nombre)
+
+  return NextResponse.json({ proyecto: data, colaborador: externo, participantes })
 }
