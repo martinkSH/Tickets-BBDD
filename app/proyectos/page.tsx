@@ -191,7 +191,19 @@ export default function ProyectosPage() {
           listas={proyectoActivo?.listas || []}
           proyectoId={proyectoActivo?.id}
           onClose={() => setTareaModal(null)}
-          onUpdated={async () => { await recargarProyecto(); setTareaModal(null) }}
+          onUpdated={async (menciones?: any[]) => {
+            if (menciones?.length && proyectoActivo) {
+              await fetch('/api/proyectos/menciones', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  tarea_id: tareaModal?.id, tarea_titulo: tareaModal?.titulo,
+                  proyecto_id: proyectoActivo.id, proyecto_nombre: proyectoActivo.nombre,
+                  menciones, autor_nombre: perfil?.nombre || 'Alguien',
+                }),
+              })
+            }
+            await recargarProyecto(); setTareaModal(null)
+          }}
           onDeleted={async () => { await recargarProyecto(); setTareaModal(null) }}
         />
       )}
@@ -585,6 +597,75 @@ function TareaCard({ tarea, onDragStart, onDragEnd, onClick }: { tarea: Tarea; o
   )
 }
 
+
+// ── Textarea con detección de @menciones ──────────────────────────────────
+function MencionTextarea({ value, onChange, onBlur, miembros, placeholder, rows }: any) {
+  const [query, setQuery] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [cursorPos, setCursorPos] = useState(0)
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value
+    const pos = e.target.selectionStart || 0
+    onChange(val)
+    // Detectar @
+    const textoBefore = val.slice(0, pos)
+    const match = textoBefore.match(/@(\w*)$/)
+    if (match) {
+      setQuery(match[1].toLowerCase())
+      setShowSuggestions(true)
+    } else {
+      setShowSuggestions(false)
+    }
+    setCursorPos(pos)
+  }
+
+  const seleccionar = (m: any) => {
+    if (!ref.current) return
+    const val = value
+    const pos = cursorPos
+    const textoBefore = val.slice(0, pos)
+    const match = textoBefore.match(/@\w*$/)
+    if (!match) return
+    const start = pos - match[0].length
+    const nuevo = val.slice(0, start) + `@${m.nombre} ` + val.slice(pos)
+    onChange(nuevo)
+    setShowSuggestions(false)
+    setTimeout(() => { if (ref.current) { const np = start + m.nombre.length + 2; ref.current.setSelectionRange(np, np); ref.current.focus() }}, 0)
+  }
+
+  const sugerencias = showSuggestions
+    ? (miembros || []).filter((m: any) => m.nombre?.toLowerCase().includes(query) || m.mail?.toLowerCase().includes(query)).slice(0, 5)
+    : []
+
+  return (
+    <div style={{ position:'relative' }}>
+      <textarea ref={ref} value={value} onChange={handleChange} onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); onBlur?.() }}
+        placeholder={placeholder} rows={rows}
+        style={{ width:'100%', border:'1px solid #f0f0f0', borderRadius:8, padding:'10px 12px', fontSize:13, resize:'vertical', outline:'none', fontFamily:'inherit', boxSizing:'border-box', minHeight:80, color:'#374151' }} />
+      {sugerencias.length > 0 && (
+        <div style={{ position:'absolute', left:0, top:'100%', zIndex:100, background:'white', border:'1px solid #e5e7eb', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.12)', minWidth:200, overflow:'hidden' }}>
+          {sugerencias.map((m: any) => (
+            <button key={m.id} onMouseDown={() => seleccionar(m)}
+              style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background='#f9fafb'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background='none'}>
+              <div style={{ width:24, height:24, borderRadius:'50%', background:'#4f6ef7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'white', flexShrink:0 }}>
+                {m.nombre?.charAt(0)}
+              </div>
+              <div>
+                <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#111827' }}>{m.nombre}</p>
+                <p style={{ margin:0, fontSize:11, color:'#9ca3af' }}>{m.mail}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Tarea Detalle Modal ───────────────────────────────────────────────────
 function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proyectoId, onClose, onUpdated, onDeleted }: any) {
   const [tarea, setTarea] = useState<Tarea>(tareaInicial)
@@ -685,7 +766,13 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
           </div>
           <div style={{ display:'flex', gap:8, flexShrink:0 }}>
             <button onClick={eliminar} style={{ background:'none', border:'1px solid #fecaca', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#dc2626', fontSize:12 }}>Eliminar</button>
-            <button onClick={() => { onUpdated() }} style={{ background:'#4f6ef7', color:'white', border:'none', borderRadius:8, padding:'6px 16px', cursor:'pointer', fontSize:13, fontWeight:600 }}>Guardar</button>
+            <button onClick={() => {
+              // Detectar @menciones en descripción
+              const matches = [...(tarea.descripcion||'').matchAll(/@(\w+)/g)]
+              const nombresM = matches.map(m => m[1].toLowerCase())
+              const mencionados = miembros.filter((m: any) => nombresM.some(n => m.nombre?.toLowerCase().startsWith(n)))
+              onUpdated(mencionados.length ? mencionados : undefined)
+            }} style={{ background:'#4f6ef7', color:'white', border:'none', borderRadius:8, padding:'6px 16px', cursor:'pointer', fontSize:13, fontWeight:600 }}>Guardar</button>
             <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#9ca3af', fontSize:20 }}>×</button>
           </div>
         </div>
@@ -695,12 +782,12 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
           <div style={{ padding:'20px 24px', borderRight:'1px solid #f0f0f0' }}>
             {/* Descripción */}
             <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Descripción</label>
-            <textarea
+            <MencionTextarea
               value={tarea.descripcion||''}
-              onChange={e => setTarea(t => ({...t, descripcion:e.target.value}))}
+              onChange={v => setTarea(t => ({...t, descripcion:v}))}
               onBlur={() => guardar({ descripcion: tarea.descripcion })}
-              placeholder="Agregá una descripción…"
-              style={{ width:'100%', border:'1px solid #f0f0f0', borderRadius:8, padding:'10px 12px', fontSize:13, resize:'vertical', outline:'none', fontFamily:'inherit', boxSizing:'border-box', minHeight:80, color:'#374151' }}
+              miembros={miembros}
+              placeholder="Agregá una descripción… usa @ para mencionar"
               rows={3}
             />
 
