@@ -84,7 +84,8 @@ export default function Sidebar({ perfil }: Props) {
 
         <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-2" style={{ color: '#3d4460' }}>Proyectos</p>
         <div className="space-y-0.5 mb-5">
-          <NavLink href="/proyectos" label="Proyectos" icon={<Icon d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />} />
+          <NavLink href="/proyectos" label="Tablero" icon={<Icon d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />} />
+          <NavLink href="/proyectos/calendario" label="Calendario" icon={<Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />} />
         </div>
 
         {(['admin','responsable IT','responsable IT/BBDD'].includes(perfil.rol)) && (<>
