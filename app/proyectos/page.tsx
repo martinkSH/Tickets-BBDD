@@ -786,7 +786,7 @@ function TareaDetalleModal({ tarea: tareaInicial, miembros, perfil, listas, proy
             <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#9ca3af', textTransform:'uppercase', marginBottom:6 }}>Descripción</label>
             <MencionTextarea
               value={tarea.descripcion||''}
-              onChange={v => setTarea(t => ({...t, descripcion:v}))}
+              onChange={(v: string) => setTarea(t => ({...t, descripcion:v}))}
               onBlur={() => guardar({ descripcion: tarea.descripcion })}
               miembros={miembros}
               placeholder="Agregá una descripción… usa @ para mencionar"
