@@ -45,7 +45,7 @@ function avatarColor(name: string) {
 }
 
 const ESTADOS = ['Pendiente', 'En Proceso', 'Cargado', 'No Cargar']
-const PRIORIDADES = ['ALTA', 'MEDIA', 'BAJA']
+const PRIORIDADES = ['L. de Alojamiento', 'ALTA', 'MEDIA', 'BAJA']
 const PAISES = ['ARG', 'EXT']
 
 const ESTADO_CFG: Record<string, { bg: string; color: string; dot: string }> = {
@@ -55,6 +55,7 @@ const ESTADO_CFG: Record<string, { bg: string; color: string; dot: string }> = {
   'No Cargar':   { bg: 'bg-red-100',     color: 'text-red-700',     dot: 'bg-red-400'     },
 }
 const PRIO_CFG: Record<string, { badge: string }> = {
+  'L. de Alojamiento': { badge: 'bg-red-600 text-white font-bold shadow-sm' },
   'ALTA':  { badge: 'bg-red-100 text-red-700'    },
   'MEDIA': { badge: 'bg-amber-100 text-amber-700' },
   'BAJA':  { badge: 'bg-green-100 text-green-700' },
