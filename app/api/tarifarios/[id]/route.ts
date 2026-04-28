@@ -19,7 +19,7 @@ async function enviarMailCargado(t: any, mails: string[]) {
     service: 'gmail',
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
   })
-  const prioColor: Record<string,string> = { ALTA:'#dc2626', MEDIA:'#d97706', BAJA:'#16a34a' }
+  const prioColor: Record<string,string> = { 'L. de Alojamiento':'#7f1d1d', ALTA:'#dc2626', MEDIA:'#d97706', BAJA:'#16a34a' }
   const html = `<div style="font-family:Arial,sans-serif;font-size:13.5px;max-width:560px;">
     <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0;">
       <p style="margin:0;color:#94a3b8;font-size:11px;text-transform:uppercase;">Say Hueque · Carga Tarifarios</p>
@@ -53,7 +53,7 @@ async function enviarMailAsignado(t: any, responsableMail: string, responsableNo
     service: 'gmail',
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
   })
-  const prioColor: Record<string,string> = { ALTA:'#dc2626', MEDIA:'#d97706', BAJA:'#16a34a' }
+  const prioColor: Record<string,string> = { 'L. de Alojamiento':'#7f1d1d', ALTA:'#dc2626', MEDIA:'#d97706', BAJA:'#16a34a' }
   const html = `<div style="font-family:Arial,sans-serif;font-size:13.5px;max-width:560px;">
     <div style="background:#1e3a5f;padding:20px 24px;border-radius:8px 8px 0 0;">
       <p style="margin:0;color:#93c5fd;font-size:11px;text-transform:uppercase;">Say Hueque · Carga Tarifarios</p>
