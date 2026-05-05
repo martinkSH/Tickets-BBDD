@@ -1,218 +1,224 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+const SERVICIOS = [
+  'Aéreos',
+  'Alojamiento',
+  'Excursiones',
+  'Guía',
+  'No turístico',
+  'Restaurant',
+  'Servicios Varios',
+  'Tour-Operator',
+  'Traslados',
+  'Viandas',
+]
+
+const inputCls = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+const labelCls = "block text-sm font-medium text-slate-700 mb-1"
 
 type Step = 'form' | 'success'
-
-const inputCls = "w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-const labelCls = "block text-sm font-medium text-slate-700 mb-1.5"
-
-function Field({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className={labelCls}>{label}{req && <span className="text-red-400 ml-1">*</span>}</label>
-      {children}
-    </div>
-  )
-}
-
-function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-800 mb-1">{title}</h2>
-      {sub && <p className="text-xs text-slate-400 mb-4">{sub}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>
-    </div>
-  )
-}
 
 export default function AltaProveedorPage() {
   const [step, setStep] = useState<Step>('form')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
-    mail_contacto: '', razon_social: '', nombre_fantasia: '',
-    domicilio: '', ciudad: '', pais: '', telefono: '',
-    cuit: '', condicion_impositiva: '',
-    forma_pago: '', moneda_pago: '', termino_pago: '', datos_bancarios: '', mail_pagos: '',
-    contacto_admin: '', contacto_comercial: '', contacto_reservas: '', telefono_emergencias: '',
+    razon_social: '', nombre_fantasia: '', cuit: '',
+    condicion_impositiva: '', mail_contacto: '', telefono: '',
+    domicilio: '', ciudad: '', pais: 'Argentina',
+    forma_pago: '', moneda_pago: '', termino_pago: '',
+    datos_bancarios: '', mail_pagos: '',
+    contacto_admin: '', contacto_comercial: '', contacto_reservas: '',
+    telefono_emergencias: '', comentario: '',
   })
+  const [servicios, setServicios] = useState<string[]>([])
+
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.mail_contacto || !form.razon_social || !form.nombre_fantasia || !form.ciudad || !form.pais || !form.telefono || !form.contacto_admin) {
-      setError('Por favor completá todos los campos obligatorios.'); return
+  const toggleServicio = (s: string) =>
+    setServicios(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+
+  const handleSubmit = async () => {
+    if (!form.razon_social || !form.mail_contacto) {
+      setError('Completá al menos razón social y mail de contacto.'); return
     }
-    setLoading(true); setError('')
-    const res = await fetch('/api/proveedores', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error || 'Error al enviar'); setLoading(false); return }
-    setStep('success')
+    if (servicios.length === 0) {
+      setError('Seleccioná al menos un tipo de servicio.'); return
+    }
+    setError(''); setLoading(true)
+    const sb = createClient()
+    const { error: err } = await sb.from('proveedores').insert({ ...form, servicios })
     setLoading(false)
+    if (err) { setError('Error al guardar: ' + err.message); return }
+    setStep('success')
   }
 
   if (step === 'success') return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full text-center">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">¡Solicitud enviada!</h1>
-        <p className="text-slate-500 text-sm">Recibimos tu solicitud de alta. Nuestro equipo la revisará y te contactará a la brevedad.</p>
-        <p className="text-slate-400 text-xs mt-4">Say Hueque · Argentina & Chile Journeys</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+        <div className="text-5xl mb-4">✅</div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Alta registrada!</h2>
+        <p className="text-slate-500 text-sm mb-6">Tu solicitud de alta como proveedor fue enviada correctamente. Nos contactaremos a la brevedad.</p>
+        <button onClick={() => { setStep('form'); setForm({ razon_social:'',nombre_fantasia:'',cuit:'',condicion_impositiva:'',mail_contacto:'',telefono:'',domicilio:'',ciudad:'',pais:'Argentina',forma_pago:'',moneda_pago:'',termino_pago:'',datos_bancarios:'',mail_pagos:'',contacto_admin:'',contacto_comercial:'',contacto_reservas:'',telefono_emergencias:'',comentario:'' }); setServicios([]) }}
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+          Registrar otro proveedor
+        </button>
       </div>
+    </div>
+  )
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="mb-8">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 pb-2 border-b border-slate-100">{title}</h3>
+      {children}
+    </div>
+  )
+
+  const Row = ({ children }: { children: React.ReactNode }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">{children}</div>
+  )
+
+  const Field = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
+    <div>
+      <label className={labelCls}>{label}{req && <span className="text-red-400 ml-1">*</span>}</label>
+      {children}
     </div>
   )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid #c9a96e', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0a' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#c9a96e' }}>A</span>
+          <div className="inline-flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg border border-amber-500 flex items-center justify-center">
+              <span className="text-xs font-black text-amber-600">A</span>
             </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#c9a96e', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Atlas</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Archive</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 10, color: '#94a3b8', letterSpacing: '0.05em' }}>Say Hueque</p>
-            </div>
+            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Atlas Archive</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Alta de Proveedor</h1>
-          <p className="text-slate-500 text-sm mt-1">Supplier Registration</p>
-          <p className="text-slate-400 text-xs mt-3 max-w-md mx-auto">
-            Completá el formulario para darte de alta como proveedor de Say Hueque, o actualizar tu información si ya trabajamos juntos.
-          </p>
+          <h1 className="text-3xl font-bold text-slate-800 mb-1">Alta de Proveedor</h1>
+          <p className="text-slate-500 text-sm">Completá el formulario para registrarte como proveedor de Say Hueque</p>
         </div>
 
-        <form onSubmit={submit} className="flex flex-col gap-5">
-          {/* Contacto */}
-          <Section title="📧 Datos de contacto" sub="Contact information">
-            <Field label="Mail / Email" req>
-              <input type="email" value={form.mail_contacto} onChange={set('mail_contacto')} className={inputCls} placeholder="proveedor@email.com" />
-            </Field>
-            <Field label="Teléfono / Telephone" req>
-              <input value={form.telefono} onChange={set('telefono')} className={inputCls} placeholder="+54 11 1234-5678" />
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+
+          {/* ── TIPOS DE SERVICIO ── */}
+          <Section title="Tipo de servicios que brindás">
+            <p className="text-sm text-slate-500 mb-4">Seleccioná todos los que correspondan <span className="text-red-400">*</span></p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {SERVICIOS.map(s => {
+                const sel = servicios.includes(s)
+                return (
+                  <button key={s} type="button" onClick={() => toggleServicio(s)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all text-left"
+                    style={{
+                      borderColor: sel ? '#3b82f6' : '#e2e8f0',
+                      background: sel ? '#eff6ff' : 'white',
+                      color: sel ? '#1d4ed8' : '#475569',
+                    }}>
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 4, border: '2px solid',
+                      borderColor: sel ? '#3b82f6' : '#cbd5e1',
+                      background: sel ? '#3b82f6' : 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      {sel && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    {s}
+                  </button>
+                )
+              })}
+            </div>
+            {servicios.length > 0 && (
+              <p className="text-xs text-blue-600 mt-3 font-medium">
+                Seleccionados: {servicios.join(', ')}
+              </p>
+            )}
+          </Section>
+
+          {/* ── DATOS GENERALES ── */}
+          <Section title="Datos generales">
+            <Row>
+              <Field label="Razón social" req><input value={form.razon_social} onChange={set('razon_social')} className={inputCls} placeholder="Empresa S.A." /></Field>
+              <Field label="Nombre de fantasía"><input value={form.nombre_fantasia} onChange={set('nombre_fantasia')} className={inputCls} placeholder="Nombre comercial" /></Field>
+            </Row>
+            <Row>
+              <Field label="CUIT"><input value={form.cuit} onChange={set('cuit')} className={inputCls} placeholder="20-12345678-9" /></Field>
+              <Field label="Condición impositiva">
+                <select value={form.condicion_impositiva} onChange={set('condicion_impositiva')} className={inputCls}>
+                  <option value="">Seleccionar…</option>
+                  {['Responsable Inscripto','Monotributista','Exento','Consumidor Final','No responsable'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </Field>
+            </Row>
+            <Row>
+              <Field label="Mail de contacto" req><input type="email" value={form.mail_contacto} onChange={set('mail_contacto')} className={inputCls} placeholder="contacto@empresa.com" /></Field>
+              <Field label="Teléfono"><input value={form.telefono} onChange={set('telefono')} className={inputCls} placeholder="+54 9 11 1234-5678" /></Field>
+            </Row>
+            <Row>
+              <Field label="Domicilio"><input value={form.domicilio} onChange={set('domicilio')} className={inputCls} placeholder="Calle 123" /></Field>
+              <Field label="Ciudad"><input value={form.ciudad} onChange={set('ciudad')} className={inputCls} placeholder="Buenos Aires" /></Field>
+            </Row>
+            <Field label="País"><input value={form.pais} onChange={set('pais')} className={inputCls} /></Field>
+          </Section>
+
+          {/* ── DATOS DE PAGO ── */}
+          <Section title="Datos de pago">
+            <Row>
+              <Field label="Forma de pago">
+                <select value={form.forma_pago} onChange={set('forma_pago')} className={inputCls}>
+                  <option value="">Seleccionar…</option>
+                  {['Transferencia bancaria','Cheque','Efectivo','Tarjeta de crédito','Western Union'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </Field>
+              <Field label="Moneda">
+                <select value={form.moneda_pago} onChange={set('moneda_pago')} className={inputCls}>
+                  <option value="">Seleccionar…</option>
+                  {['ARS','USD','EUR'].map(o => <option key={o}>{o}</option>)}
+                </select>
+              </Field>
+            </Row>
+            <Row>
+              <Field label="Término de pago"><input value={form.termino_pago} onChange={set('termino_pago')} className={inputCls} placeholder="30 días, anticipado, etc." /></Field>
+              <Field label="Mail para pagos"><input type="email" value={form.mail_pagos} onChange={set('mail_pagos')} className={inputCls} placeholder="pagos@empresa.com" /></Field>
+            </Row>
+            <Field label="Datos bancarios">
+              <textarea value={form.datos_bancarios} onChange={set('datos_bancarios')} className={inputCls} rows={3} placeholder="CBU, alias, banco, sucursal…" />
             </Field>
           </Section>
 
-          {/* Empresa */}
-          <Section title="🏢 Datos de la empresa" sub="Company information">
-            <div className="md:col-span-2">
-              <Field label="Razón Social (debe coincidir con la factura) / Legal Business Name" req>
-                <input value={form.razon_social} onChange={set('razon_social')} className={inputCls} placeholder="Razón social completa" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Nombre de Fantasía / Fantasy Name" req>
-                <input value={form.nombre_fantasia} onChange={set('nombre_fantasia')} className={inputCls} placeholder="Si coincide con Razón Social, repetir" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Domicilio real y fiscal / Real and Billing Address">
-                <input value={form.domicilio} onChange={set('domicilio')} className={inputCls} placeholder="Calle, altura, piso, depto, código postal" />
-              </Field>
-            </div>
-            <Field label="Ciudad / City" req>
-              <input value={form.ciudad} onChange={set('ciudad')} className={inputCls} placeholder="Nombre completo de la ciudad" />
-            </Field>
-            <Field label="País / Country (código ISO)" req>
-              <input value={form.pais} onChange={set('pais')} className={inputCls} placeholder="AR, CL, BR, UY…" maxLength={2} />
+          {/* ── CONTACTOS ── */}
+          <Section title="Contactos">
+            <Row>
+              <Field label="Contacto administrativo"><input value={form.contacto_admin} onChange={set('contacto_admin')} className={inputCls} placeholder="Nombre y teléfono" /></Field>
+              <Field label="Contacto comercial"><input value={form.contacto_comercial} onChange={set('contacto_comercial')} className={inputCls} placeholder="Nombre y teléfono" /></Field>
+            </Row>
+            <Row>
+              <Field label="Contacto de reservas"><input value={form.contacto_reservas} onChange={set('contacto_reservas')} className={inputCls} placeholder="Nombre y teléfono" /></Field>
+              <Field label="Teléfono de emergencias"><input value={form.telefono_emergencias} onChange={set('telefono_emergencias')} className={inputCls} placeholder="+54 9 11..." /></Field>
+            </Row>
+          </Section>
+
+          {/* ── COMENTARIOS ── */}
+          <Section title="Información adicional">
+            <Field label="Comentarios u observaciones">
+              <textarea value={form.comentario} onChange={set('comentario')} className={inputCls} rows={4} placeholder="Cualquier información adicional relevante…" />
             </Field>
           </Section>
 
-          {/* Fiscal */}
-          <Section title="🧾 Datos fiscales" sub="Tax information (Argentina only)">
-            <Field label="CUIT (solo proveedores argentinos)">
-              <input value={form.cuit} onChange={set('cuit')} className={inputCls} placeholder="Sin espacios ni guiones" />
-            </Field>
-            <Field label="Condición impositiva / Tax Status">
-              <select value={form.condicion_impositiva} onChange={set('condicion_impositiva')} className={inputCls}>
-                <option value="">Seleccioná…</option>
-                <option>Responsable inscripto</option>
-                <option>Monotributista</option>
-                <option>Exento</option>
-                <option>No Responsable</option>
-              </select>
-            </Field>
-          </Section>
+          {error && <p className="text-red-500 text-sm mb-4 bg-red-50 px-4 py-3 rounded-lg">{error}</p>}
 
-          {/* Pago */}
-          <Section title="💳 Datos de pago" sub="Payment information">
-            <Field label="Forma de pago / Payment method" req>
-              <select value={form.forma_pago} onChange={set('forma_pago')} className={inputCls}>
-                <option value="">Seleccioná…</option>
-                <option>Cuenta Corriente</option>
-                <option>Prepago (pago por adelantado)</option>
-              </select>
-            </Field>
-            <Field label="Moneda de pago / Payment currency" req>
-              <select value={form.moneda_pago} onChange={set('moneda_pago')} className={inputCls}>
-                <option value="">Seleccioná…</option>
-                {['USD BNA','USD MEP','ARS','CLP','BRL','EUR'].map(m => <option key={m}>{m}</option>)}
-              </select>
-            </Field>
-            <div className="md:col-span-2">
-              <Field label="Término de pago / Payment terms" req>
-                <input value={form.termino_pago} onChange={set('termino_pago')} className={inputCls} placeholder="Cantidad de días pre/post servicio. Aclarar señas si aplica." />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Datos bancarios / Banking details" req>
-                <textarea value={form.datos_bancarios} onChange={set('datos_bancarios')} className={inputCls} rows={3}
-                  placeholder="Nombre del Banco / CBU / Nro de cuenta / Nombre del titular — SOLO CBU, no cuentas digitales ni alias" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Mail para informar pagos / Email for payment notifications" req>
-                <input type="email" value={form.mail_pagos} onChange={set('mail_pagos')} className={inputCls} placeholder="pagos@proveedor.com" />
-              </Field>
-            </div>
-          </Section>
-
-          {/* Contactos */}
-          <Section title="👥 Contactos" sub="Key contacts">
-            <div className="md:col-span-2">
-              <Field label="Contacto Administración / Administration Contact" req>
-                <input value={form.contacto_admin} onChange={set('contacto_admin')} className={inputCls} placeholder="Nombre completo, Email, Teléfono" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Contacto Comercial / Commercial Contact">
-                <input value={form.contacto_comercial} onChange={set('contacto_comercial')} className={inputCls} placeholder="Nombre completo, Email, Teléfono" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Reservas / Reservations">
-                <input value={form.contacto_reservas} onChange={set('contacto_reservas')} className={inputCls} placeholder="Nombre completo, Email, Teléfono" />
-              </Field>
-            </div>
-            <div className="md:col-span-2">
-              <Field label="Teléfono de guardia/emergencias / Emergency phone">
-                <input value={form.telefono_emergencias} onChange={set('telefono_emergencias')} className={inputCls} placeholder="+54 11 9999-9999" />
-              </Field>
-            </div>
-          </Section>
-
-          {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>}
-
-          <button type="submit" disabled={loading}
-            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm">
-            {loading ? 'Enviando…' : 'Enviar solicitud de alta'}
+          <button onClick={handleSubmit} disabled={loading}
+            className="w-full py-3 rounded-xl font-semibold text-white transition-all text-sm"
+            style={{ background: loading ? '#94a3b8' : '#e8573f', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Enviando…' : 'Enviar formulario de alta →'}
           </button>
-
-          <p className="text-center text-xs text-slate-400 pb-4">
-            Consultas: <a href="mailto:lupe@sayhueque.com" className="text-blue-500">lupe@sayhueque.com</a>
-          </p>
-        </form>
+        </div>
       </div>
     </div>
   )
