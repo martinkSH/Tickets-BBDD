@@ -21,6 +21,28 @@ const labelCls = "block text-sm font-medium text-slate-700 mb-1"
 
 type Step = 'form' | 'success'
 
+// ⬇️ Helpers MOVIDOS FUERA del componente principal.
+// Si quedan dentro, se redefinen en cada render → React los ve como
+// componentes nuevos → desmonta y remonta el subárbol → el input
+// pierde el foco con cada tecla. Este era el bug.
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="mb-8">
+    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 pb-2 border-b border-slate-100">{title}</h3>
+    {children}
+  </div>
+)
+
+const Row = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">{children}</div>
+)
+
+const Field = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
+  <div>
+    <label className={labelCls}>{label}{req && <span className="text-red-400 ml-1">*</span>}</label>
+    {children}
+  </div>
+)
+
 export default function AltaProveedorPage() {
   const [step, setStep] = useState<Step>('form')
   const [loading, setLoading] = useState(false)
@@ -68,24 +90,6 @@ export default function AltaProveedorPage() {
           Registrar otro proveedor
         </button>
       </div>
-    </div>
-  )
-
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="mb-8">
-      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 pb-2 border-b border-slate-100">{title}</h3>
-      {children}
-    </div>
-  )
-
-  const Row = ({ children }: { children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">{children}</div>
-  )
-
-  const Field = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
-    <div>
-      <label className={labelCls}>{label}{req && <span className="text-red-400 ml-1">*</span>}</label>
-      {children}
     </div>
   )
 
