@@ -4,8 +4,11 @@
 //
 // Lo que se carga acá termina como nota "Descripción Temática" (DP1..DP9) en la
 // ficha del proveedor en TourPlan, y de ahí lo lee el módulo Temáticas Especiales
-// de Atlas OPS. Por eso los campos son exactamente los de la plantilla de TP y el
-// form muestra abajo el bloque ya armado para copiar y pegar.
+// de Atlas OPS. Por eso los campos son exactamente los de la plantilla de TP.
+//
+// Este form es solo la ENTRADA: quien lo completa no carga TP. La nota se pega en
+// TourPlan desde /tematicas (vista interna), que muestra los pendientes con el
+// bloque listo para copiar. Acá el bloque va solo como vista previa.
 //
 // Guarda en la tabla `tematicas_especiales` (ver supabase/tematicas_especiales.sql).
 // No pasa por `tickets`: es una tabla propia, como alta-proveedor / alta-cliente.
@@ -38,7 +41,6 @@ export default function TematicasEspecialesPage() {
   const [step, setStep] = useState<Step>('form')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [copiado, setCopiado] = useState(false)
   const [form, setForm] = useState(blank)
 
   const set = (k: keyof typeof form) =>
@@ -47,16 +49,6 @@ export default function TematicasEspecialesPage() {
 
   // El bloque que se pega en TP. Se arma en vivo para que se vea qué va a quedar.
   const nota = useMemo(() => buildNotaTP(form), [form])
-
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(nota)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    } catch {
-      setError('No se pudo copiar automáticamente — seleccioná el texto y usá Ctrl+C.')
-    }
-  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,22 +167,17 @@ export default function TematicasEspecialesPage() {
             </div>
           </div>
 
-          {/* Bloque listo para pegar en la nota de TP */}
+          {/* Vista previa. Quien completa el form NO es quien carga la nota en TP: eso
+              se hace desde /tematicas, que muestra este mismo bloque listo para copiar.
+              Acá el bloque va solo para que se vea cómo va a quedar antes de enviar. */}
           <div className="pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2 mt-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                Para copiar y pegar en TourPlan
-              </h3>
-              <button type="button" onClick={copiar}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-                {copiado ? '✓ Copiado' : '📋 Copiar'}
-              </button>
-            </div>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 mt-4">
+              Así va a quedar la nota
+            </h3>
             <textarea readOnly value={nota} rows={15}
-              onFocus={e => e.currentTarget.select()}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 text-slate-700 resize-none" />
             <p className="text-xs text-slate-400 mt-1">
-              Este es el texto exacto de la nota. Se actualiza mientras completás el form.
+              Se actualiza mientras completás el form. La carga en TourPlan la hace el equipo.
             </p>
           </div>
 

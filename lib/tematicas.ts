@@ -1,9 +1,9 @@
 // Temáticas Especiales — vocabulario y armado de la nota para TourPlan.
 //
-// El objetivo del form es que quien carga pueda COPIAR el bloque y PEGARLO tal
-// cual en la nota "Descripción Temática" (DP1..DP9) de la ficha del proveedor en
-// TP. Por eso el formato de abajo tiene que respetar la plantilla de TP: mismos
-// labels, mismo orden, línea en blanco entre campos.
+// El objetivo es que desde /tematicas se pueda COPIAR el bloque y PEGARLO tal cual
+// en la nota "Descripción Temática" (DP1..DP9) de la ficha del proveedor en TP. Por
+// eso el formato de abajo tiene que respetar la plantilla de TP: mismos labels,
+// mismo orden, línea en blanco entre campos.
 //
 // OJO: en TP el label va SIN tilde ("Tematica:"). No "corregirlo" — el módulo
 // Temáticas Especiales de Atlas OPS parsea las notas por estos labels.
