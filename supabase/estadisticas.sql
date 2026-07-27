@@ -85,4 +85,11 @@ LEFT JOIN perfiles p ON p.id = t.responsable_id;
 -- (Ver definiciones aplicadas vía migración; devuelven JSONB con todos los
 --  bloques del dashboard para un rango [p_from, p_to], granularidad p_bucket
 --  ('day'|'week'|'month'), umbral SLA p_sla en horas hábiles y, en BBDD,
---  filtro opcional de área de negocio p_area.)
+--  filtro opcional de área de negocio p_area y de proveedor p_proveedor.)
+--
+--  estadisticas_bbdd(p_from, p_to, p_bucket, p_sla, p_area, p_proveedor)
+--  El filtro por proveedor normaliza con lower(btrim(...)) para unir variantes
+--  de mayúsculas/espacios del texto libre (ej. "blumar" + "Blumar" + "BLUMAR").
+
+-- ── 6. Lista de proveedores presentes en tickets (para el selector) ─────────
+--  proveedores_tickets_list() → [{ label, key, total }] normalizado por nombre.

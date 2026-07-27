@@ -206,6 +206,8 @@ export default function EstadisticasPage() {
   const [periodoId, setPeriodoId] = useState('30d')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
+  const [proveedor, setProveedor] = useState('')
+  const [provList, setProvList] = useState<{ label: string; key: string; total: number }[]>([])
   const [data, setData] = useState<any>(null)
   const [comparacion, setComparacion] = useState<any>(null)
   const [meta, setMeta] = useState<any>(null)
@@ -222,6 +224,8 @@ export default function EstadisticasPage() {
       if (!p) { router.push('/login'); return }
       if (p.rol !== 'admin') { router.push('/dashboard'); return }
       setPerfil(p)
+      const { data: provs } = await sb.rpc('proveedores_tickets_list')
+      if (Array.isArray(provs)) setProvList(provs)
     }
     init()
   }, [])
@@ -241,6 +245,7 @@ export default function EstadisticasPage() {
     const params = new URLSearchParams()
     params.set('sector', sector)
     if (sector === 'bbdd' && areaTab !== 'general') params.set('area', areaTab)
+    if (sector === 'bbdd' && proveedor) params.set('proveedor', proveedor)
     if (from) params.set('from', from.toISOString())
     params.set('to', to.toISOString())
     params.set('t', String(Date.now()))
@@ -253,9 +258,9 @@ export default function EstadisticasPage() {
       setLastUpdate(new Date())
     }
     setLoading(false)
-  }, [sector, areaTab, currentRange])
+  }, [sector, areaTab, proveedor, currentRange])
 
-  useEffect(() => { if (perfil) load() }, [perfil, sector, areaTab, periodoId, customFrom, customTo, load])
+  useEffect(() => { if (perfil) load() }, [perfil, sector, areaTab, proveedor, periodoId, customFrom, customTo, load])
 
   if (!perfil) return null
 
@@ -269,6 +274,7 @@ export default function EstadisticasPage() {
     const rows: (string | number)[][] = []
     const scope = sector === 'it' ? 'IT' : (areaTab === 'general' ? 'BBDD General' : `BBDD ${areaTab}`)
     rows.push([`Estadísticas ${scope}`])
+    if (meta?.proveedor) rows.push([`Proveedor`, meta.proveedor])
     rows.push([`Período`, meta?.from ? new Date(meta.from).toLocaleDateString('es-AR') : 'Todo', '→', new Date(meta?.to).toLocaleDateString('es-AR')])
     rows.push([])
     rows.push(['RESUMEN'])
@@ -320,7 +326,7 @@ export default function EstadisticasPage() {
         {/* Sector */}
         <div className="no-print" style={{ display: 'flex', gap: 8, marginBottom: 14, padding: 8, background: '#f9fafb', borderRadius: 14, border: '1px solid #f0f0f0', width: 'fit-content' }}>
           <button onClick={() => { setSector('bbdd'); setAreaTab('general') }} style={segBtn(sector === 'bbdd')}>📋 BBDD</button>
-          <button onClick={() => { setSector('it'); setAreaTab('general') }} style={segBtn(sector === 'it')}>🖥️ IT</button>
+          <button onClick={() => { setSector('it'); setAreaTab('general'); setProveedor('') }} style={segBtn(sector === 'it')}>🖥️ IT</button>
         </div>
 
         {/* Período */}
@@ -337,6 +343,34 @@ export default function EstadisticasPage() {
             </span>
           )}
         </div>
+
+        {/* Filtro por proveedor (solo BBDD) */}
+        {sector === 'bbdd' && (
+          <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#6b7280' }}>Proveedor:</span>
+            <div style={{ position: 'relative' }}>
+              <input
+                list="prov-list"
+                value={proveedor}
+                onChange={e => setProveedor(e.target.value)}
+                placeholder="Todos los proveedores…"
+                style={{ ...dateInput, width: 260, paddingRight: proveedor ? 26 : 10 }}
+              />
+              {proveedor && (
+                <button onClick={() => setProveedor('')} title="Quitar filtro"
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+            <datalist id="prov-list">
+              {provList.map(p => <option key={p.key} value={p.label}>{`${p.total} tickets`}</option>)}
+            </datalist>
+            {proveedor && (
+              <span style={{ fontSize: 12, color: accent, fontWeight: 600, background: '#eef2ff', borderRadius: 20, padding: '4px 12px' }}>
+                Filtrando por “{proveedor}”
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Tabs de área (solo BBDD) */}
         {sector === 'bbdd' && (

@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 
   const sector = (sp.get('sector') || 'bbdd').toLowerCase()
   const area = sp.get('area') || null          // solo BBDD; null = general
+  const proveedor = sp.get('proveedor') || null // solo BBDD; null = todos
   const sla = Number(sp.get('sla') || 24)
   const fromStr = sp.get('from')               // ISO o null (todo)
   const toStr = sp.get('to')                   // ISO o null (ahora)
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
   const baseArgs =
     sector === 'it'
       ? { p_bucket: bucket, p_sla: sla }
-      : { p_bucket: bucket, p_sla: sla, p_area: area }
+      : { p_bucket: bucket, p_sla: sla, p_area: area, p_proveedor: proveedor }
 
   const call = (f: Date | null, t: Date | null) =>
     supabase.rpc(rpc, {
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
     meta: {
       sector,
       area,
+      proveedor,
       sla,
       bucket,
       from: from ? from.toISOString() : null,
