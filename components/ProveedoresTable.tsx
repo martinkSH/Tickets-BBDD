@@ -29,6 +29,7 @@ interface Proveedor {
   responsable_id?: string
   responsable?: { id: string; nombre: string; mail: string }
   comentario?: string
+  servicios?: string[]
   created_at: string
 }
 
@@ -169,6 +170,13 @@ export default function ProveedoresTable({ proveedores, totalCount, page, pageSi
                     <td style={{ padding: '11px 14px' }}>
                       <p style={{ margin: 0, fontWeight: 600, color: '#111827' }}>{p.razon_social}</p>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9ca3af' }}>{p.mail_contacto}</p>
+                      {p.servicios && p.servicios.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                          {p.servicios.map(s => (
+                            <span key={s} style={{ background: '#eff6ff', color: '#1d4ed8', borderRadius: 5, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{s}</span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '11px 14px' }}>
                       <span style={{ background: '#f3f4f6', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 700, color: '#374151' }}>{p.pais || '—'}</span>
@@ -266,6 +274,16 @@ function ProveedorModal({ proveedor, responsables, saving, onClose, onSave, onCh
 
         {/* Datos completos */}
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {proveedor.servicios && proveedor.servicios.length > 0 && (
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Tipo de servicios</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {proveedor.servicios.map(s => (
+                  <span key={s} style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe', borderRadius: 8, padding: '4px 12px', fontSize: 12.5, fontWeight: 600 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', background: '#f9fafb', borderRadius: 10, padding: 16 }}>
             {row('Domicilio', proveedor.domicilio)}
             {row('Ciudad', proveedor.ciudad)}
