@@ -78,6 +78,7 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
   const [showNew, setShowNew] = useState(false)
   const originalCargoPor = useRef<string | undefined>(undefined)
   const [busqueda, setBusqueda] = useState(filters.q || '')
+  const [exportando, setExportando] = useState(false)
   const searchTimer = useRef<NodeJS.Timeout>()
   const totalPages = Math.ceil(totalCount / pageSize)
 
@@ -112,6 +113,30 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
     router.refresh()
   }
 
+  // Exporta a Excel todo lo que matchea los filtros actuales (no sólo la página)
+  const handleExport = async () => {
+    setExportando(true)
+    try {
+      const params = new URLSearchParams()
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v) })
+      const res = await fetch(`/api/tarifarios/export?${params.toString()}`)
+      if (!res.ok) throw new Error('export falló')
+      const blob = await res.blob()
+      const nombre = res.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1]
+        || `tarifarios_${new Date().toISOString().slice(0, 10)}.xlsx`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombre
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('No se pudo generar el Excel. Probá de nuevo.')
+    } finally {
+      setExportando(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este tarifario?')) return
     await fetch(`/api/tarifarios/${id}`, { method: 'DELETE' })
@@ -136,11 +161,19 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
             <AutoRefresh />
           </div>
         </div>
-        <button onClick={() => setShowNew(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4"/></svg>
-          Nuevo tarifario
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={handleExport} disabled={exportando || totalCount === 0}
+            title="Descargar en Excel los tarifarios que coinciden con los filtros actuales"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'white', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: exportando || totalCount === 0 ? 'not-allowed' : 'pointer', opacity: exportando || totalCount === 0 ? 0.5 : 1 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {exportando ? 'Generando…' : 'Exportar Excel'}
+          </button>
+          <button onClick={() => setShowNew(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#4f6ef7', color: 'white', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v16m8-8H4"/></svg>
+            Nuevo tarifario
+          </button>
+        </div>
       </div>
 
       {/* KPI chips de estado */}
