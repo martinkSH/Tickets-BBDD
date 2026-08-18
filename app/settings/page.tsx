@@ -530,7 +530,7 @@ export default function SettingsPage() {
           {/* Estados extra */}
           <Section title="🚦 Estados de ticket">
             <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
-              Los estados base (Recibido, Asignado, Pendiente Operador, Pendiente Ventas, Resuelto) no se pueden modificar. Podés agregar estados intermedios que aparecerán en el modal entre Pendiente Ventas y Resuelto.
+              Los estados base no se pueden modificar. Podés agregar estados intermedios que aparecerán en el modal entre Pendiente Ventas y Resolver. Resolver no cierra el ticket: le pide la conformidad al solicitante y recién ahí queda cerrado (o se cierra solo a las 72 hs hábiles).
             </p>
 
             {/* Estados fijos */}
@@ -544,7 +544,13 @@ export default function SettingsPage() {
                 <Tag key={e.key} label={e.label} sub={e.pausa ? '⏸' : undefined} onRemove={() => eliminarEstado(e.key)} />
               ))}
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
-                🔒 Resuelto
+                🔒 Resolver
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#cffafe', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
+                🔒 Esperando al solicitante ⏸
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
+                🔒 Cerrado
               </span>
             </div>
 

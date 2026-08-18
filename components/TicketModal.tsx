@@ -14,6 +14,9 @@ interface EstadoDyn {
   bg: string
   dot: string
   fijo: boolean
+  // Estados que pone el sistema, no la persona: sólo se muestran si el ticket
+  // ya está en ellos y no se pueden elegir a mano.
+  sistema?: boolean
 }
 
 const ESTADOS_FIJOS: EstadoDyn[] = [
@@ -21,8 +24,47 @@ const ESTADOS_FIJOS: EstadoDyn[] = [
   { key: 'Asignado',           label: 'Asignado',        pausa: false, color: 'text-orange-700',  bg: 'bg-orange-100',  dot: 'bg-orange-500',  fijo: true },
   { key: 'Pendiente Operador', label: 'Pend. Operador',  pausa: true,  color: 'text-orange-700',  bg: 'bg-orange-50',   dot: 'bg-orange-400',  fijo: true },
   { key: 'Pendiente Ventas',   label: 'Pend. Ventas',    pausa: true,  color: 'text-purple-700',  bg: 'bg-purple-50',   dot: 'bg-purple-400',  fijo: true },
-  { key: 'Resuelto',           label: 'Resuelto',        pausa: false, color: 'text-emerald-800', bg: 'bg-emerald-100', dot: 'bg-emerald-600', fijo: true },
+  { key: 'Pendiente Conformidad', label: 'Esperando al solicitante', pausa: true, color: 'text-cyan-800', bg: 'bg-cyan-50', dot: 'bg-cyan-500', fijo: true, sistema: true },
+  { key: 'Resuelto',           label: 'Cerrado',         pausa: false, color: 'text-emerald-800', bg: 'bg-emerald-100', dot: 'bg-emerald-600', fijo: true, sistema: true },
 ]
+
+// Los maneja el ciclo de conformidad, no se eligen a mano. Los estados extra
+// que se configuran en Settings se insertan antes de ellos.
+const ESTADOS_FINALES = ['Pendiente Conformidad', 'Resuelto']
+
+// Chip que reemplaza a "Resuelto" en el selector: resolver ya no cierra el
+// ticket, lo manda a pedirle la conformidad al solicitante.
+const RESOLVER: EstadoDyn = {
+  key: 'Resuelto', label: 'Resolver', pausa: false,
+  color: 'text-emerald-800', bg: 'bg-emerald-100', dot: 'bg-emerald-600', fijo: true,
+}
+
+const elegibles = (extras: EstadoDyn[] = []) => [
+  ...ESTADOS_FIJOS.filter(e => !ESTADOS_FINALES.includes(e.key)),
+  ...extras,
+  RESOLVER,
+]
+
+const fmtFechaHora = (iso?: string) =>
+  iso ? new Date(iso).toLocaleString('es-AR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }) : '—'
+
+const CERRADO_POR: Record<string, string> = {
+  solicitante: 'lo cerró el solicitante',
+  auto: 'se cerró solo por falta de respuesta',
+  bbdd: 'lo cerró BBDD',
+  legacy: 'cerrado antes de la conformidad',
+}
+
+interface Comentario {
+  id: string
+  autor_tipo: 'solicitante' | 'responsable'
+  autor_mail?: string
+  contenido: string
+  created_at: string
+}
 
 const DYN_COLORS = [
   { color: 'text-cyan-700',  bg: 'bg-cyan-50',   dot: 'bg-cyan-400'   },
@@ -50,11 +92,21 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
   const [error, setError] = useState('')
   const [mounted, setMounted] = useState(false)
   const [tiposTicket, setTiposTicket] = useState<string[]>([...TIPOS_TICKET].sort((a, b) => a.localeCompare(b, 'es')))
-  const [estadosDyn, setEstadosDyn] = useState<EstadoDyn[]>(ESTADOS_FIJOS)
+  const [estadosDyn, setEstadosDyn] = useState<EstadoDyn[]>(() => elegibles())
+  const [comentarios, setComentarios] = useState<Comentario[]>([])
+  const [respuesta, setRespuesta] = useState('')
+  const [enviandoResp, setEnviandoResp] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
+
+  const cargarComentarios = () =>
+    fetch(`/api/tickets/${ticket.id}/comentarios`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setComentarios(d) })
+      .catch(() => {})
 
   useEffect(() => {
     setMounted(true)
+    cargarComentarios()
     // Cargar settings dinámicos
     fetch('/api/settings').then(r => r.json()).then(data => {
       const tiposSetting = data.find((s: any) => s.key === 'tipos_ticket')
@@ -69,10 +121,7 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
           fijo: false,
           ...DYN_COLORS[i % DYN_COLORS.length],
         }))
-        // Insertar extras antes de Resuelto
-        const sinResuelto = ESTADOS_FIJOS.filter(e => e.key !== 'Resuelto')
-        const resuelto = ESTADOS_FIJOS.find(e => e.key === 'Resuelto')!
-        setEstadosDyn([...sinResuelto, ...extras, resuelto])
+        setEstadosDyn(elegibles(extras))
       }
     }).catch(() => {})
   }, [])
@@ -85,11 +134,17 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
 
   const estadoActual = estadosDyn.find(e => e.key === estado) || ESTADOS_FIJOS.find(e => e.key === estado)
 
+  // Estados en los que BBDD ya dio su respuesta y el bloque de resolución
+  // tiene que estar visible (para cargarla o para corregirla).
+  const resolviendo = ESTADOS_FINALES.includes(estado)
+  const esperandoConformidad = ticket.estado === 'Pendiente Conformidad'
+  const cerrado = ticket.estado === 'Resuelto'
+
   const handleSave = async () => {
-    if (estado === 'Resuelto' && !tipoTicket) {
+    if (resolviendo && !tipoTicket) {
       setError('Seleccioná el tipo de ticket para resolver'); return
     }
-    if (estado === 'Resuelto' && !comentarioSolucion.trim()) {
+    if (resolviendo && !comentarioSolucion.trim()) {
       setError('Agregá un comentario de solución'); return
     }
     setSaving(true); setError('')
@@ -100,6 +155,27 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
     })
     if (!res.ok) { setError('Error al guardar'); setSaving(false); return }
     onUpdated()
+  }
+
+  // Responder en el hilo es independiente de "Guardar cambios": se manda solo
+  // y le llega al solicitante por mail con el link a su página del ticket.
+  const handleResponder = async () => {
+    const texto = respuesta.trim()
+    if (!texto) return
+    setEnviandoResp(true); setError('')
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/comentarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contenido: texto }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'No se pudo enviar la respuesta'); return }
+      setRespuesta('')
+      await cargarComentarios()
+    } finally {
+      setEnviandoResp(false)
+    }
   }
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -183,31 +259,66 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
             </div>
           )}
 
+          {/* Dónde está el ciclo de conformidad */}
+          {esperandoConformidad && (
+            <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '12px 14px' }}>
+              <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#0e7490' }}>
+                ⏳ Esperando la conformidad de {ticket.mail_solicitante}
+              </p>
+              <p style={{ margin: 0, fontSize: 12.5, color: '#155e75', lineHeight: 1.5 }}>
+                Se le pidió el {fmtFechaHora(ticket.conformidad_pedida_at)}. Si no responde, se cierra
+                solo a las 72 hs hábiles. El ticket ya cuenta como resuelto en las estadísticas.
+              </p>
+            </div>
+          )}
+
+          {cerrado && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 14px' }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#15803d' }}>
+                ✓ Cerrado el {fmtFechaHora(ticket.fecha_cierre || ticket.fecha_resolucion)}
+                {ticket.cerrado_por && ` — ${CERRADO_POR[ticket.cerrado_por] || ticket.cerrado_por}`}
+              </p>
+            </div>
+          )}
+
           {/* Estado */}
           <div>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 6 }}>Estado</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {estadosDyn.map(e => {
-                const active = estado === e.key
+                // 'Pendiente Conformidad' no está en la lista (lo pone el
+                // sistema), pero el chip de resolver tiene que verse activo.
+                const active = estado === e.key || (e.key === 'Resuelto' && resolviendo)
                 return (
                   <button key={e.key} onClick={() => setEstado(e.key)}
                     className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                       active ? `${e.bg} ${e.color} border-current` : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
                     )}>
                     <span className={cx('w-1.5 h-1.5 rounded-full', e.dot)} />
-                    {e.label}
+                    {/* Ya cerrado, el chip no "resuelve": deja el ticket como está */}
+                    {e.key === 'Resuelto' && cerrado ? 'Cerrado' : e.label}
                     {e.pausa && <span style={{ fontSize: 10 }}>⏸</span>}
                   </button>
                 )
               })}
             </div>
-            {estadoActual?.pausa && (
+            {estadoActual?.pausa && !resolviendo && (
               <p style={{ fontSize: 12, color: '#ea580c', marginTop: 6 }}>⏸ Este estado pausa el tiempo de resolución</p>
+            )}
+            {estado === 'Resuelto' && !cerrado && (
+              <p style={{ fontSize: 12, color: '#0e7490', marginTop: 6 }}>
+                Al guardar se le pide la conformidad al solicitante; el ticket no queda cerrado todavía.
+              </p>
+            )}
+            {(esperandoConformidad || cerrado) && !ESTADOS_FINALES.includes(estado) && (
+              <p style={{ fontSize: 12, color: '#ea580c', marginTop: 6 }}>
+                ⚠ Al guardar, el ticket se reabre y deja de contar como resuelto.
+              </p>
             )}
           </div>
 
           {/* Resolución */}
-          {estado === 'Resuelto' && (
+          {resolviendo && (
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#166534', marginBottom: 6 }}>
@@ -226,17 +337,63 @@ export default function TicketModal({ ticket, responsables, perfil, onClose, onU
                 <textarea value={comentarioSolucion} onChange={e => setComentarioSolucion(e.target.value)}
                   rows={3} placeholder="Describí cómo se resolvió el ticket…"
                   style={{ width: '100%', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', background: 'white' }} />
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#16a34a' }}>Este comentario se enviará por mail al solicitante.</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: '#16a34a' }}>
+                  {esperandoConformidad || cerrado
+                    ? 'Corregir este texto no le vuelve a escribir al solicitante; usá la conversación de abajo.'
+                    : 'Este comentario se enviará por mail al solicitante.'}
+                </p>
               </div>
             </div>
           )}
 
-          {ticket.comentario_solucion && ticket.estado === 'Resuelto' && estado !== 'Resuelto' && (
+          {ticket.comentario_solucion && ticket.fecha_resolucion && !resolviendo && (
             <div style={{ background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px' }}>
               <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase' }}>Solución anterior</p>
               <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>{ticket.comentario_solucion}</p>
             </div>
           )}
+
+          {/* Conversación con el solicitante */}
+          <div>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Conversación con el solicitante{comentarios.length > 0 && ` (${comentarios.length})`}
+            </p>
+
+            {comentarios.length === 0 ? (
+              <p style={{ margin: '0 0 10px', fontSize: 12.5, color: '#9ca3af' }}>
+                Todavía no hay mensajes. Lo que escribas acá le llega por mail con el link a su ticket.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                {comentarios.map(c => {
+                  const delSolicitante = c.autor_tipo === 'solicitante'
+                  return (
+                    <div key={c.id} style={{
+                      background: delSolicitante ? '#fff7ed' : '#f9fafb',
+                      border: `1px solid ${delSolicitante ? '#fed7aa' : '#f0f0f0'}`,
+                      borderRadius: 8, padding: '10px 12px',
+                    }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: delSolicitante ? '#c2410c' : '#6b7280' }}>
+                        {delSolicitante ? `${c.autor_mail || 'Solicitante'} (solicitante)` : (c.autor_mail || 'BBDD')} · {fmtFechaHora(c.created_at)}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.contenido}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <textarea value={respuesta} onChange={e => setRespuesta(e.target.value)}
+              rows={2} placeholder="Escribile al solicitante…"
+              style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 12px', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <button onClick={handleResponder} disabled={enviandoResp || !respuesta.trim()}
+                style={{ padding: '7px 16px', fontSize: 12.5, fontWeight: 600, border: 'none', borderRadius: 8, color: 'white', background: respuesta.trim() && !enviandoResp ? '#4f6ef7' : '#c7d2fe', cursor: respuesta.trim() && !enviandoResp ? 'pointer' : 'not-allowed' }}>
+                {enviandoResp ? 'Enviando…' : 'Enviar al solicitante'}
+              </button>
+              <span style={{ fontSize: 11.5, color: '#9ca3af' }}>Se envía solo, sin necesidad de guardar el ticket.</span>
+            </div>
+          </div>
 
           {error && <p style={{ margin: 0, fontSize: 13, color: '#dc2626', background: '#fee2e2', padding: '8px 12px', borderRadius: 8 }}>{error}</p>}
         </div>

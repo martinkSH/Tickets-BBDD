@@ -56,7 +56,10 @@ SELECT
   COALESCE(am.area, 'OTRO') AS area_negocio,
   (t.created_at AT TIME ZONE 'America/Argentina/Buenos_Aires') AS created_local,
   (t.fecha_resolucion AT TIME ZONE 'America/Argentina/Buenos_Aires') AS resuelto_local,
-  CASE WHEN t.estado = 'Resuelto' AND t.fecha_resolucion IS NOT NULL
+  -- El corte es fecha_resolucion, no estado='Resuelto': un ticket en
+  -- 'Pendiente Conformidad' ya tiene el trabajo de BBDD terminado y tiene que
+  -- traer sus horas, o entra al set de resueltos en NULL y hunde el %SLA.
+  CASE WHEN t.fecha_resolucion IS NOT NULL
        THEN business_hours_between(t.created_at, t.fecha_resolucion) END AS horas_resolucion,
   CASE WHEN t.assigned_at IS NOT NULL
        THEN business_hours_between(t.created_at, t.assigned_at) END AS horas_asignacion
@@ -90,6 +93,12 @@ LEFT JOIN perfiles p ON p.id = t.responsable_id;
 --  estadisticas_bbdd(p_from, p_to, p_bucket, p_sla, p_area, p_proveedor)
 --  El filtro por proveedor normaliza con lower(btrim(...)) para unir variantes
 --  de mayúsculas/espacios del texto libre (ej. "blumar" + "Blumar" + "BLUMAR").
+--
+--  Criterio de resuelto/abierto (desde la conformidad del solicitante, ver
+--  conformidad.sql): "resuelto" es fecha_resolucion IS NOT NULL y "abierto" es
+--  fecha_resolucion IS NULL. NO se usa estado='Resuelto', que ahora significa
+--  "cerrado" — un ticket en 'Pendiente Conformidad' está resuelto pero no
+--  cerrado, y no debe inflar el backlog ni la lista de atrasados.
 
 -- ── 6. Lista de proveedores presentes en tickets (para el selector) ─────────
 --  proveedores_tickets_list() → [{ label, key, total }] normalizado por nombre.

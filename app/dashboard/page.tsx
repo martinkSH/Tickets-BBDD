@@ -38,11 +38,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
     .eq('activo', true)
     .order('nombre')
 
-  // Contar tickets abiertos por responsable (para el panel)
+  // Contar tickets abiertos por responsable (para el panel). "Abierto" es
+  // trabajo pendiente: los que esperan la conformidad del solicitante ya
+  // están resueltos y no son carga del responsable.
   const { data: countData } = await supabase
     .from('tickets_con_responsable')
     .select('responsable_id')
-    .neq('estado', 'Resuelto')
+    .is('fecha_resolucion', null)
 
   const ticketsPorResponsable: Record<string, number> = {}
   for (const t of countData || []) {

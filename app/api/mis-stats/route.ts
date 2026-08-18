@@ -40,12 +40,16 @@ function calcStats(tickets: any[], now: Date, tipo: 'bbdd' | 'it') {
   for (const t of tickets) {
     const estado = t.estado as string
     porEstado[estado] = (porEstado[estado] || 0) + 1
-    if (estado === 'Resuelto') resueltos++
-    else abiertos++
 
     const ts = new Date(t.created_at)
+    // El corte es fecha_resolucion, no el estado: un ticket en 'Pendiente
+    // Conformidad' ya lo resolvió el responsable — cuenta como resuelto y no
+    // debe aparecer como atrasado mientras espera al solicitante.
     const fechaRes = t.fecha_resolucion ? new Date(t.fecha_resolucion) : null
-    if (estado === 'Resuelto' && fechaRes) {
+    if (fechaRes) resueltos++
+    else abiertos++
+
+    if (fechaRes) {
       const hs = businessHoursDiff(ts, fechaRes)
       if (hs >= 0) { totalHoras += hs; cantHoras++ }
     } else {

@@ -19,9 +19,12 @@ async function autoAssign(supabase: any, ticketId: string, ticket: any) {
     .gte('created_at', seisAtras.toISOString())
     .not('responsable_id', 'is', null)
 
+  // Carga real: lo que todavía tiene trabajo pendiente. Un ticket en
+  // 'Pendiente Conformidad' ya está resuelto y sólo espera al solicitante,
+  // así que no debe penalizar al responsable en el scoring.
   const { data: abiertos } = await supabase
     .from('tickets').select('responsable_id')
-    .neq('estado', 'Resuelto').not('responsable_id', 'is', null)
+    .is('fecha_resolucion', null).not('responsable_id', 'is', null)
 
   const cargaActual: Record<string, number> = {}
   for (const t of abiertos || []) {

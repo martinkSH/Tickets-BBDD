@@ -4,7 +4,11 @@ export type Estado =
   | 'Asignado'
   | 'Pendiente Operador'
   | 'Pendiente Ventas'
+  | 'Pendiente Conformidad'
   | 'Resuelto'
+
+// Quién cerró el ticket. 'legacy' son los cerrados antes de existir la conformidad.
+export type CerradoPor = 'solicitante' | 'auto' | 'bbdd' | 'legacy'
 
 export type AreaAfectada = 'Tarifas' | 'Base de Datos' | 'Otro'
 
@@ -41,13 +45,39 @@ export interface Ticket {
   fecha_resolucion?: string
   responsable_nombre?: string
   responsable_mail?: string
+  // Ciclo de conformidad del solicitante
+  token_publico?: string
+  fecha_cierre?: string
+  cerrado_por?: CerradoPor
+  conformidad_pedida_at?: string
+  recordatorio_enviado_at?: string
 }
+
+export interface TicketComentario {
+  id: string
+  ticket_id: string
+  autor_tipo: 'solicitante' | 'responsable'
+  autor_mail?: string
+  autor_id?: string
+  contenido: string
+  created_at: string
+}
+
+// Horas hábiles que el solicitante tiene para responder antes del cierre automático
+export const HORAS_CONFORMIDAD = 72
+// A mitad de camino se le manda un recordatorio
+export const HORAS_RECORDATORIO = 36
 
 export const ESTADOS_PAUSA: Estado[] = ['Pendiente Operador', 'Pendiente Ventas']
 
 export const ESTADOS_ORDEN: Estado[] = [
-  'Recibido', 'Asignado', 'Pendiente Operador', 'Pendiente Ventas', 'Resuelto',
+  'Recibido', 'Asignado', 'Pendiente Operador', 'Pendiente Ventas',
+  'Pendiente Conformidad', 'Resuelto',
 ]
+
+// Estados en los que BBDD ya terminó su trabajo (fecha_resolucion cargada).
+// Ojo: 'resuelto' ≠ 'cerrado'. Cerrado es sólo 'Resuelto'.
+export const ESTADOS_RESUELTOS: Estado[] = ['Pendiente Conformidad', 'Resuelto']
 
 export const ESTADO_CONFIG: Record<Estado, {
   label: string; color: string; bg: string; border: string; dot: string; pausa: boolean
@@ -56,7 +86,8 @@ export const ESTADO_CONFIG: Record<Estado, {
   'Asignado':          { label: 'Asignado',        color: 'text-orange-700', bg: 'bg-orange-100', border: 'border-orange-300', dot: 'bg-orange-500', pausa: false },
   'Pendiente Operador':{ label: 'Pend. Operador',  color: 'text-orange-700', bg: 'bg-orange-50',  border: 'border-orange-200', dot: 'bg-orange-400', pausa: true  },
   'Pendiente Ventas':  { label: 'Pend. Ventas',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', dot: 'bg-purple-400', pausa: true  },
-  'Resuelto':          { label: 'Resuelto',        color: 'text-emerald-800',bg: 'bg-emerald-100',border: 'border-emerald-300',dot: 'bg-emerald-600',pausa: false },
+  'Pendiente Conformidad': { label: 'Esperando al solicitante', color: 'text-cyan-800', bg: 'bg-cyan-50', border: 'border-cyan-300', dot: 'bg-cyan-500', pausa: true },
+  'Resuelto':          { label: 'Cerrado',         color: 'text-emerald-800',bg: 'bg-emerald-100',border: 'border-emerald-300',dot: 'bg-emerald-600',pausa: false },
 }
 
 export const AREA_CONFIG: Record<string, { badge: string; short: string }> = {

@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
       .order(fechaCol, { ascending: false })
       .range(offset, offset + PAGE - 1)
 
-    if (sobreResueltos) q = q.eq('estado', 'Resuelto')
+    // Mismo criterio que el RPC: resuelto es tener fecha_resolucion, no
+    // estado='Resuelto' (que desde la conformidad significa "cerrado").
+    if (sobreResueltos) q = q.not('fecha_resolucion', 'is', null)
     if (from) q = q.gte(fechaCol, from.toISOString())
     q = q.lte(fechaCol, to.toISOString())
 
@@ -99,7 +101,7 @@ export async function GET(req: NextRequest) {
       const k = (key(t) || '').trim() || NULL_LABEL
       const e = m.get(k) || { label: k, total: 0, resueltos: 0 }
       e.total++
-      if (t.estado === 'Resuelto') e.resueltos++
+      if (t.fecha_resolucion) e.resueltos++
       m.set(k, e)
     }
     return Array.from(m.values()).sort((a, b) => b.total - a.total)

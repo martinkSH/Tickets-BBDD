@@ -31,10 +31,11 @@ export async function POST(req: NextRequest) {
     .gte('created_at', seisAtras.toISOString())
     .not('responsable_id', 'is', null)
 
-  // Carga actual de tickets abiertos
+  // Carga actual: sólo lo que tiene trabajo pendiente. Los que esperan la
+  // conformidad del solicitante ya están resueltos y no cuentan como carga.
   const { data: abiertos } = await supabase
     .from('tickets').select('responsable_id')
-    .neq('estado', 'Resuelto').not('responsable_id', 'is', null)
+    .is('fecha_resolucion', null).not('responsable_id', 'is', null)
 
   const cargaActual: Record<string, number> = {}
   for (const t of abiertos || []) {

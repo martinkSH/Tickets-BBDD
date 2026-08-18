@@ -55,7 +55,9 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
     if (ticketsPorResponsableProps) return ticketsPorResponsableProps
     const c: Record<string, number> = {}
     tickets.forEach(t => {
-      if (t.estado !== 'Resuelto' && t.responsable_id) {
+      // Carga = trabajo pendiente. Los que esperan la conformidad del
+      // solicitante ya están resueltos y no pesan sobre el responsable.
+      if (!t.fecha_resolucion && t.responsable_id) {
         c[t.responsable_id] = (c[t.responsable_id] || 0) + 1
       }
     })
@@ -238,7 +240,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
                         <span className={cx('w-1.5 h-1.5 rounded-full shrink-0', cfg.dot)} />
                         {cfg.label}
                       </span>
-                      {t.estado === 'Resuelto' && t.tipo_ticket && (
+                      {t.fecha_resolucion && t.tipo_ticket && (
                         <p style={{ margin: '3px 0 0', fontSize: 11, color: '#9ca3af' }}>{t.tipo_ticket}</p>
                       )}
                     </td>

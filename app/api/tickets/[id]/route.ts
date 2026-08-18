@@ -38,13 +38,45 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     updates.comentario_asignacion = comentario_asignacion
   }
 
+  // La solución se guarda venga o no acompañada de un cambio de estado: el
+  // modal deja corregirla mientras el ticket espera la conformidad.
+  const sol = comentario_solucion ?? comentario
+  if (sol) updates.comentario_solucion = sol
+  if (tipo_ticket) updates.tipo_ticket = tipo_ticket
+
   if (estado) {
     updates.estado = estado
+    const estadoPrevio = ticketActual?.estado
+
     if (estado === 'Resuelto') {
-      updates.fecha_resolucion = new Date().toISOString()
-      const sol = comentario_solucion ?? comentario
-      if (sol) updates.comentario_solucion = sol
-      if (tipo_ticket) updates.tipo_ticket = tipo_ticket
+      if (estadoPrevio === 'Resuelto') {
+        // Ya cerrado: cualquier otro guardado (corregir el tipo, cambiar
+        // responsable) lo deja cerrado. No se reabre ni se remanda nada.
+        updates.estado = 'Resuelto'
+      } else {
+        // BBDD ya no cierra el ticket: lo deja esperando la conformidad del
+        // solicitante. fecha_resolucion sí se marca ahora — el trabajo de BBDD
+        // terminó acá y es lo que miden las estadísticas.
+        updates.estado = 'Pendiente Conformidad'
+        // Si ya venía esperando conformidad, esto es una corrección de la
+        // solución, no una resolución nueva: ni se pisa fecha_resolucion
+        // (movería el promedio) ni se reinicia el reloj de las 72 hs.
+        if (estadoPrevio !== 'Pendiente Conformidad') {
+          const ahora = new Date().toISOString()
+          updates.fecha_resolucion = ahora
+          updates.conformidad_pedida_at = ahora
+          updates.recordatorio_enviado_at = null
+        }
+      }
+    } else if (ticketActual?.fecha_resolucion) {
+      // Vuelve a un estado abierto: es una reapertura. Se limpia todo el rastro
+      // de resolución o el ticket seguiría contando como resuelto y fuera del
+      // backlog. Mismo criterio que la reapertura desde el mail del solicitante.
+      updates.fecha_resolucion = null
+      updates.conformidad_pedida_at = null
+      updates.recordatorio_enviado_at = null
+      updates.fecha_cierre = null
+      updates.cerrado_por = null
     }
   }
 
@@ -68,8 +100,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-    // Mail resolución
-    if (nuevoEstado === 'Resuelto') {
+    // Mail resolución: pide conformidad al solicitante y arranca el reloj.
+    // Sólo en la transición — si el ticket ya venía esperando conformidad,
+    // cualquier otro guardado (cambiar responsable, corregir el tipo) le
+    // volvería a mandar el mismo mail al solicitante.
+    if (nuevoEstado === 'Pendiente Conformidad'
+        && ticketActual?.estado !== 'Pendiente Conformidad') {
       try {
         await mailTicketResuelto({
           ...ticket,

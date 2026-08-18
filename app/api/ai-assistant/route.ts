@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
 
   const tickStats = {
     total: tickets?.length || 0,
-    abiertos: (tickets || []).filter(t => t.estado !== 'Resuelto').length,
+    // Abierto = todavía sin resolver. Los que esperan la conformidad del
+    // solicitante ya están resueltos aunque su estado no sea 'Resuelto'.
+    abiertos: (tickets || []).filter(t => !t.fecha_resolucion).length,
     porEstado: countBy(tickets || [], 'estado'),
     porArea: countBy(tickets || [], 'area_afectada'),
     porResponsable: countBy(tickets || [], 'responsable_nombre'),

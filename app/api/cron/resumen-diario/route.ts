@@ -61,10 +61,12 @@ export async function GET(req: NextRequest) {
       recibidosHoy++
       if (['Asignado','Pendiente Operador','Pendiente Ventas'].includes(estado)) asignadosHoy++
     }
-    if (estado === 'Resuelto' && fechaSol && sameDay(fechaSol, now) && isBusinessTime(fechaSol)) resueltosHoy++
+    // Resuelto = tiene fecha_resolucion. Un ticket en 'Pendiente Conformidad'
+    // ya lo resolvió BBDD: cuenta en el resumen del día y no es atrasado.
+    if (fechaSol && sameDay(fechaSol, now) && isBusinessTime(fechaSol)) resueltosHoy++
     if (estado === 'Recibido') backlogPendiente++
     if (['Asignado','Pendiente Operador','Pendiente Ventas'].includes(estado)) backlogAsignado++
-    if (estado !== 'Resuelto') {
+    if (!fechaSol) {
       const diff = businessHoursDiff(ts, now)
       if (diff > 24) atrasados.push({ numero: t.numero, responsable: t.responsable_nombre || 'Sin asignar', estado, horas: diff })
     }
