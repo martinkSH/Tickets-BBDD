@@ -9,6 +9,7 @@ import {
   PERIODOS, calcDelta, fmtNum, fmtHoras, downloadCSV, type Sector, type Delta,
 } from '@/lib/estadisticas'
 import { TendenciaChart, SlaDonut, AgingChart } from '@/components/EstadisticasCharts'
+import DetalleDimensionModal, { type DetalleQuery, type DetalleDim } from '@/components/DetalleDimensionModal'
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const AREAS = ['GRUPOS', 'FITS', 'ALIWEN', 'B2C', 'OTRO']
@@ -57,8 +58,9 @@ function KpiCard({ label, value, sub, color, delta }: {
   )
 }
 
-function BarList({ rows, color = '#4f6ef7', unit }: {
+function BarList({ rows, color = '#4f6ef7', unit, onSelect }: {
   rows: { label: string; total: number }[]; color?: string; unit?: string
+  onSelect?: (label: string) => void   // si viene, cada fila abre el detalle de esa categoría
 }) {
   if (!rows?.length) return <p style={{ color: '#9ca3af', fontSize: 13, padding: '10px 0' }}>Sin datos en este período</p>
   const max = Math.max(...rows.map(r => r.total), 1)
@@ -68,10 +70,20 @@ function BarList({ rows, color = '#4f6ef7', unit }: {
       {rows.map((r, i) => {
         const pct = total > 0 ? Math.round(r.total / total * 100) : 0
         return (
-          <div key={i} style={{ padding: '9px 0', borderTop: i ? '1px solid #f6f6f7' : 'none' }}>
+          <div key={i}
+            className={onSelect ? 'bar-row' : undefined}
+            role={onSelect ? 'button' : undefined}
+            tabIndex={onSelect ? 0 : undefined}
+            title={onSelect ? `Ver los ${r.total} tickets de “${r.label}”` : undefined}
+            onClick={onSelect ? () => onSelect(r.label) : undefined}
+            onKeyDown={onSelect ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(r.label) } } : undefined}
+            style={{ padding: '9px 0', borderTop: i ? '1px solid #f6f6f7' : 'none', cursor: onSelect ? 'pointer' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 5 }}>
               <span style={{ color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{r.label}</span>
-              <span style={{ color: '#6b7280' }}><b style={{ color: '#111827' }}>{r.total}</b>{unit ? ` ${unit}` : ''} · {pct}%</span>
+              <span style={{ color: '#6b7280' }}>
+                <b style={{ color: '#111827' }}>{r.total}</b>{unit ? ` ${unit}` : ''} · {pct}%
+                {onSelect && <span className="bar-chevron" style={{ marginLeft: 6, color, fontWeight: 700 }}>›</span>}
+              </span>
             </div>
             <div style={{ height: 5, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ width: `${Math.round(r.total / max * 100)}%`, height: '100%', background: color, borderRadius: 3 }} />
@@ -213,6 +225,7 @@ export default function EstadisticasPage() {
   const [meta, setMeta] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [detalle, setDetalle] = useState<DetalleQuery | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -267,6 +280,16 @@ export default function EstadisticasPage() {
   const r = data?.resumen
   const c = comparacion
   const accent = sector === 'it' ? '#4f46e5' : '#4f6ef7'
+
+  // ── Drill-down: abre el detalle de una barra con los mismos filtros de la vista ──
+  const abrirDetalle = (dim: DetalleDim, titulo: string, color: string) => (label: string) =>
+    setDetalle({
+      dim, label, titulo, color,
+      area: meta?.area ?? null,
+      proveedor: meta?.proveedor ?? null,
+      from: meta?.from ?? null,
+      to: meta?.to || new Date().toISOString(),
+    })
 
   // ── Export CSV de la vista actual ─────────────────────────────────────────
   const exportCSV = () => {
@@ -436,20 +459,25 @@ export default function EstadisticasPage() {
             ) : (
               <>
                 {areaTab === 'general' && (data.porArea || []).length > 0 && <>
-                  <SectionTitle>Por área de negocio</SectionTitle>
-                  <BarList rows={data.porArea} color={accent} />
+                  <SectionTitle hint="Click en una fila para ver el detalle">Por área de negocio</SectionTitle>
+                  <BarList rows={data.porArea} color={accent}
+                    onSelect={abrirDetalle('area_negocio', 'Por área de negocio', accent)} />
                 </>}
-                <SectionTitle>Por área afectada</SectionTitle>
-                <BarList rows={data.porAreaAfectada || []} color="#2563eb" />
-                <SectionTitle>Por motivo</SectionTitle>
-                <BarList rows={data.porMotivo || []} color="#7c3aed" />
+                <SectionTitle hint="Click en una fila para ver el detalle">Por área afectada</SectionTitle>
+                <BarList rows={data.porAreaAfectada || []} color="#2563eb"
+                  onSelect={abrirDetalle('area_afectada', 'Por área afectada', '#2563eb')} />
+                <SectionTitle hint="Click en una fila para ver el detalle">Por motivo</SectionTitle>
+                <BarList rows={data.porMotivo || []} color="#7c3aed"
+                  onSelect={abrirDetalle('motivo', 'Por motivo', '#7c3aed')} />
                 {(data.porProveedor || []).length > 0 && <>
-                  <SectionTitle>Proveedores más mencionados</SectionTitle>
-                  <BarList rows={data.porProveedor} color="#059669" />
+                  <SectionTitle hint="Click en una fila para ver el detalle">Proveedores más mencionados</SectionTitle>
+                  <BarList rows={data.porProveedor} color="#059669"
+                    onSelect={abrirDetalle('proveedor', 'Proveedor', '#059669')} />
                 </>}
                 {(data.porTipo || []).length > 0 && <>
-                  <SectionTitle hint="Sobre tickets resueltos en el período">Tipos de resolución</SectionTitle>
-                  <BarList rows={data.porTipo} color="#d97706" />
+                  <SectionTitle hint="Sobre tickets resueltos en el período · click en una fila para ver el detalle">Tipos de resolución</SectionTitle>
+                  <BarList rows={data.porTipo} color="#d97706"
+                    onSelect={abrirDetalle('tipo_ticket', 'Tipo de resolución', '#d97706')} />
                 </>}
               </>
             )}
@@ -467,8 +495,14 @@ export default function EstadisticasPage() {
         )}
       </div>
 
+      {detalle && <DetalleDimensionModal query={detalle} onClose={() => setDetalle(null)} />}
+
       <style jsx global>{`
         @media (max-width: 720px) { .tend-grid { grid-template-columns: 1fr !important; } }
+        .bar-row { margin: 0 -16px; padding-left: 16px !important; padding-right: 16px !important; border-radius: 6px; }
+        .bar-row:hover, .bar-row:focus-visible { background: #fafbff; outline: none; }
+        .bar-chevron { opacity: 0; transition: opacity .12s; }
+        .bar-row:hover .bar-chevron, .bar-row:focus-visible .bar-chevron { opacity: 1; }
         @media print {
           .no-print, aside, nav { display: none !important; }
           main { margin-left: 0 !important; }
