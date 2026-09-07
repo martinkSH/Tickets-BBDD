@@ -6,10 +6,11 @@ import { HORAS_CONFORMIDAD, HORAS_RECORDATORIO } from '@/lib/types'
 export const dynamic = 'force-dynamic'
 
 // Barrido diario de los tickets esperando la conformidad del solicitante:
-//   · pasadas HORAS_CONFORMIDAD hábiles sin respuesta → se cierran solos
+//   · pasadas HORAS_CONFORMIDAD sin respuesta → se cierran solos
 //   · a mitad de camino → un único recordatorio
-// Las horas se miden con business_hours_between(), la misma función que usan
-// las estadísticas, así que un viernes a la tarde no se autocierra el sábado.
+// Las horas son de reloj, contadas desde conformidad_pedida_at. El cron corre
+// una vez por día hábil, así que el cierre cae entre las 72 hs y la corrida
+// siguiente (un ticket que vence sábado se cierra el lunes).
 
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization')
@@ -28,22 +29,16 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!pendientes?.length) return NextResponse.json({ ok: true, cerrados: 0, recordatorios: 0 })
 
-  // Horas hábiles transcurridas de cada uno, calculadas en Postgres
-  const { data: horas, error: errHoras } = await supabase.rpc('horas_habiles_conformidad')
-  if (errHoras) return NextResponse.json({ error: errHoras.message }, { status: 500 })
-
-  const transcurridas = new Map<string, number>(
-    (horas || []).map((h: { id: string; horas: number }) => [h.id, Number(h.horas)])
-  )
-
-  const ahora = new Date().toISOString()
+  const ahoraMs = Date.now()
+  const ahora = new Date(ahoraMs).toISOString()
   let cerrados = 0
   let recordatorios = 0
   const fallos: string[] = []
 
   for (const t of pendientes) {
-    const hs = transcurridas.get(t.id)
-    if (hs === undefined) continue
+    const pedida = Date.parse(t.conformidad_pedida_at)
+    if (Number.isNaN(pedida)) continue
+    const hs = (ahoraMs - pedida) / 3_600_000
 
     // ── Vencido: se cierra solo ──
     if (hs >= HORAS_CONFORMIDAD) {

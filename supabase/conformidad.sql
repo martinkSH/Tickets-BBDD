@@ -71,17 +71,13 @@ FROM tickets t LEFT JOIN perfiles p ON p.id = t.responsable_id;
 
 GRANT SELECT ON tickets_con_responsable TO anon, authenticated;
 
--- ── 7. Horas hábiles transcurridas, para el cron de autocierre ──────────────
-CREATE OR REPLACE FUNCTION public.horas_habiles_conformidad()
-RETURNS TABLE (id uuid, horas numeric)
-LANGUAGE sql STABLE AS $$
-  SELECT t.id, business_hours_between(t.conformidad_pedida_at, now())
-  FROM tickets t
-  WHERE t.estado = 'Pendiente Conformidad'
-    AND t.conformidad_pedida_at IS NOT NULL;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.horas_habiles_conformidad() TO anon, authenticated;
+-- ── 7. (derogado) Horas hábiles transcurridas, para el cron de autocierre ───
+-- El plazo de conformidad pasó a medirse en horas de reloj: con horas hábiles
+-- (9 h por día, L-V) las 72 daban 8 días hábiles y los tickets tardaban ~12
+-- días corridos en autocerrarse. El cron ahora hace la resta en JS y esta
+-- función quedó sin uso. business_hours_between() sigue viva: la usan las
+-- estadísticas de resolución.
+DROP FUNCTION IF EXISTS public.horas_habiles_conformidad();
 
 -- ── 8. El trigger también marca la resolución al pedir conformidad ──────────
 -- La guarda `IS NULL` es la que evita que el cierre final pise fecha_resolucion

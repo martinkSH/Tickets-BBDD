@@ -63,7 +63,9 @@ export interface TicketComentario {
   created_at: string
 }
 
-// Horas hábiles que el solicitante tiene para responder antes del cierre automático
+// Horas de reloj que el solicitante tiene para responder antes del cierre
+// automático. Corridas, no hábiles: medidas con business_hours_between() estas
+// mismas 72 daban 8 días hábiles (~12 corridos) y los tickets se amontonaban.
 export const HORAS_CONFORMIDAD = 72
 // A mitad de camino se le manda un recordatorio
 export const HORAS_RECORDATORIO = 36

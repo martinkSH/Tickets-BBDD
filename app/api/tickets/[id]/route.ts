@@ -68,6 +68,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           updates.recordatorio_enviado_at = null
         }
       }
+    } else if (estado === 'Pendiente Conformidad') {
+      // El modal manda siempre el estado actual, así que un guardado que no
+      // toca los chips (cambiar responsable, corregir el tipo) llega hasta acá
+      // con el ticket ya esperando conformidad. No es una reapertura: si se
+      // limpiara el reloj, el cron dejaría de verlo (filtra por
+      // conformidad_pedida_at) y el ticket no se cerraría nunca más.
     } else if (ticketActual?.fecha_resolucion) {
       // Vuelve a un estado abierto: es una reapertura. Se limpia todo el rastro
       // de resolución o el ticket seguiría contando como resuelto y fuera del
