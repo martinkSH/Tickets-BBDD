@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { buildXlsx, XLSX_CONTENT_TYPE, type XlsxCellInput, type XlsxStyle } from '@/lib/xlsx'
+import { filtrarPorCargo } from '@/lib/tarifarios-cargo'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,6 +89,7 @@ export async function GET(req: NextRequest) {
     prioridad: sp.get('prioridad') || undefined,
     pais: sp.get('pais') || undefined,
     q: sp.get('q') || undefined,
+    cargo: sp.get('cargo') || undefined,
   }
 
   // Trae todo lo que matchea los filtros (Supabase corta en 1000 por request)
@@ -99,6 +101,7 @@ export async function GET(req: NextRequest) {
     if (f.prioridad) query = query.eq('prioridad', f.prioridad)
     if (f.pais)      query = query.eq('pais', f.pais)
     if (f.q)         query = query.ilike('proveedor', `%${f.q}%`)
+    query = filtrarPorCargo(query, f.cargo)
 
     const { data, error } = await query.range(from, from + BATCH - 1)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

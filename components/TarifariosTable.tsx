@@ -4,6 +4,7 @@ import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Perfil } from '@/lib/types'
 import AutoRefresh from './AutoRefresh'
+import { SIN_ASIGNAR } from '@/lib/tarifarios-cargo'
 
 interface Tarifario {
   id: string
@@ -33,7 +34,9 @@ interface Props {
   page: number
   pageSize: number
   cuentaEstados: Record<string, number>
-  filters: { estado?: string; prioridad?: string; pais?: string; q?: string }
+  /** Tarifarios por nombre de pila de quien cargó (SIN_ASIGNAR = nadie). */
+  cuentaCargo: Record<string, number>
+  filters: { estado?: string; prioridad?: string; pais?: string; q?: string; cargo?: string }
   perfil: Perfil
   responsables: Responsable[]
 }
@@ -71,7 +74,7 @@ function sanitizeLink(url?: string) {
 
 function cx(...c: (string|false|null|undefined)[]) { return c.filter(Boolean).join(' ') }
 
-export default function TarifariosTable({ tarifarios, totalCount, page, pageSize, cuentaEstados, filters, perfil, responsables }: Props) {
+export default function TarifariosTable({ tarifarios, totalCount, page, pageSize, cuentaEstados, cuentaCargo, filters, perfil, responsables }: Props) {
   const router = useRouter()
   const [editing, setEditing] = useState<Tarifario | null>(null)
   const [saving, setSaving] = useState(false)
@@ -231,6 +234,19 @@ export default function TarifariosTable({ tarifarios, totalCount, page, pageSize
             </button>
           ))}
         </div>
+
+        {/* Cargó — agrupa por nombre de pila ("Paula" = "Paula Masciangioli") */}
+        <select value={filters.cargo || ''} onChange={e => handleFilter('cargo', e.target.value || undefined)}
+          title="Filtrar por quién cargó el tarifario"
+          style={{ padding: '7px 10px', fontSize: 12, fontWeight: 500, border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer',
+            background: filters.cargo ? '#111827' : 'white', color: filters.cargo ? 'white' : '#6b7280', outline: 'none' }}>
+          <option value="">Cargó: todos</option>
+          {Object.entries(cuentaCargo)
+            .filter(([n]) => n !== SIN_ASIGNAR)
+            .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+            .map(([n, c]) => <option key={n} value={n}>{n} ({c})</option>)}
+          {cuentaCargo[SIN_ASIGNAR] ? <option value={SIN_ASIGNAR}>Sin asignar ({cuentaCargo[SIN_ASIGNAR]})</option> : null}
+        </select>
       </div>
 
       {/* Tabla */}
