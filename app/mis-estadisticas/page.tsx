@@ -69,7 +69,7 @@ function DiasGrid({ dias, color }: { dias: { label: string; total: number }[]; c
 function EstadosGrid({ porEstado }: { porEstado: Record<string, number> }) {
   const COLORES: Record<string, string> = {
     Recibido: '#6b7280', Asignado: '#2563eb', Pendiente: '#7c3aed',
-    'Pendiente Operador': '#d97706', 'Pendiente Ventas': '#d97706',
+    'Pendiente BBDD': '#dc2626', 'Pendiente Operador': '#d97706', 'Pendiente Ventas': '#d97706',
     'Pendiente Conformidad': '#0891b2', Resuelto: '#16a34a',
   }
   return (

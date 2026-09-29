@@ -22,7 +22,11 @@ export default async function ProveedoresPage({ searchParams }: { searchParams: 
     .range(page * PAGE, (page + 1) * PAGE - 1)
 
   if (searchParams.estado) query = query.eq('estado', searchParams.estado)
-  if (searchParams.q) query = query.ilike('razon_social', `%${searchParams.q}%`)
+  if (searchParams.q) {
+    // Sin comas ni paréntesis: romperían la sintaxis del filtro or() de PostgREST
+    const q = searchParams.q.replace(/[,()*]/g, ' ').trim()
+    if (q) query = query.or(`nombre_fantasia.ilike.*${q}*,razon_social.ilike.*${q}*`)
+  }
 
   const { data: proveedores, count } = await query
 

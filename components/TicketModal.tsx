@@ -22,6 +22,7 @@ interface EstadoDyn {
 const ESTADOS_FIJOS: EstadoDyn[] = [
   { key: 'Recibido',           label: 'Recibido',       pausa: false, color: 'text-slate-600',   bg: 'bg-slate-100',   dot: 'bg-slate-400',   fijo: true },
   { key: 'Asignado',           label: 'Asignado',        pausa: false, color: 'text-orange-700',  bg: 'bg-orange-100',  dot: 'bg-orange-500',  fijo: true },
+  { key: 'Pendiente BBDD',     label: 'Pend. BBDD',      pausa: false, color: 'text-red-700',     bg: 'bg-red-50',      dot: 'bg-red-500',     fijo: true },
   { key: 'Pendiente Operador', label: 'Pend. Operador',  pausa: true,  color: 'text-orange-700',  bg: 'bg-orange-50',   dot: 'bg-orange-400',  fijo: true },
   { key: 'Pendiente Ventas',   label: 'Pend. Ventas',    pausa: true,  color: 'text-purple-700',  bg: 'bg-purple-50',   dot: 'bg-purple-400',  fijo: true },
   { key: 'Pendiente Conformidad', label: 'Esperando al solicitante', pausa: true, color: 'text-cyan-800', bg: 'bg-cyan-50', dot: 'bg-cyan-500', fijo: true, sistema: true },

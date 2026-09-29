@@ -11,6 +11,7 @@ interface Proveedor {
   razon_social: string
   nombre_fantasia?: string
   domicilio?: string
+  domicilio_facturacion?: string
   ciudad?: string
   pais?: string
   telefono?: string
@@ -20,7 +21,12 @@ interface Proveedor {
   moneda_pago?: string
   termino_pago?: string
   datos_bancarios?: string
+  cbu?: string
+  alias_cbu?: string
+  banco?: string
+  contacto_pagos?: string
   mail_pagos?: string
+  mail_reservas?: string
   contacto_admin?: string
   contacto_comercial?: string
   contacto_reservas?: string
@@ -56,6 +62,11 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 function cx(...c: (string|false|null|undefined)[]) { return c.filter(Boolean).join(' ') }
+// Los registros viejos no siempre tienen nombre de fantasía
+const nombreProveedor = (p: Proveedor) => p.nombre_fantasia?.trim() || p.razon_social
+
+const contacto = (nombre?: string, mail?: string) => [nombre, mail].filter(Boolean).join(' · ') || undefined
+
 function formatFecha(iso?: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })
@@ -143,7 +154,7 @@ export default function ProveedoresTable({ proveedores, totalCount, page, pageSi
         <input
           defaultValue={filters.q}
           onChange={e => { clearTimeout((window as any).__searchTimer); (window as any).__searchTimer = setTimeout(() => router.push(buildUrl({ q: e.target.value || undefined })), 400) }}
-          placeholder="Buscar razón social…"
+          placeholder="Buscar nombre o razón social…"
           style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, outline: 'none', width: 260 }}
         />
       </div>
@@ -156,7 +167,7 @@ export default function ProveedoresTable({ proveedores, totalCount, page, pageSi
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #f0f0f0' }}>
-                {['Razón Social','País','Estado','Responsable','Fecha',''].map(h => (
+                {['Proveedor','País','Estado','Responsable','Fecha',''].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -168,7 +179,7 @@ export default function ProveedoresTable({ proveedores, totalCount, page, pageSi
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                     <td style={{ padding: '11px 14px' }}>
-                      <p style={{ margin: 0, fontWeight: 600, color: '#111827' }}>{p.razon_social}</p>
+                      <p style={{ margin: 0, fontWeight: 600, color: '#111827' }}>{nombreProveedor(p)}</p>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9ca3af' }}>{p.mail_contacto}</p>
                       {p.servicios && p.servicios.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
@@ -266,8 +277,8 @@ function ProveedorModal({ proveedor, responsables, saving, onClose, onSave, onCh
         {/* Header */}
         <div style={{ padding: '18px 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{proveedor.razon_social}</h2>
-            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#9ca3af' }}>{proveedor.nombre_fantasia} · {proveedor.pais} · {proveedor.mail_contacto}</p>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{nombreProveedor(proveedor)}</h2>
+            <p style={{ margin: '3px 0 0', fontSize: 12, color: '#9ca3af' }}>{[proveedor.pais, proveedor.mail_contacto].filter(Boolean).join(' · ')}</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 20 }}>×</button>
         </div>
@@ -285,27 +296,36 @@ function ProveedorModal({ proveedor, responsables, saving, onClose, onSave, onCh
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', background: '#f9fafb', borderRadius: 10, padding: 16 }}>
-            {row('Domicilio', proveedor.domicilio)}
-            {row('Ciudad', proveedor.ciudad)}
+            {row('Razón social', proveedor.razon_social)}
             {row('Teléfono', proveedor.telefono)}
-            {row('CUIT', proveedor.cuit)}
+            {row('Dirección física', proveedor.domicilio)}
+            {row('Dirección de facturación', proveedor.domicilio_facturacion)}
+            {row('Ciudad', proveedor.ciudad)}
             {row('Condición impositiva', proveedor.condicion_impositiva)}
             {row('Forma de pago', proveedor.forma_pago)}
             {row('Moneda', proveedor.moneda_pago)}
             {row('Término de pago', proveedor.termino_pago)}
-            {row('Mail pagos', proveedor.mail_pagos)}
             {row('Tel. emergencias', proveedor.telefono_emergencias)}
           </div>
-          {proveedor.datos_bancarios && (
+          {(proveedor.cuit || proveedor.cbu || proveedor.alias_cbu || proveedor.banco || proveedor.datos_bancarios) && (
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 12 }}>
-              <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>Datos bancarios</p>
-              <p style={{ margin: 0, fontSize: 13, color: '#374151' }}>{proveedor.datos_bancarios}</p>
+              <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>Datos bancarios</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+                {row('CUIT / Tax ID', proveedor.cuit)}
+                {row('Banco', proveedor.banco)}
+                {row('CBU', proveedor.cbu)}
+                {row('Alias', proveedor.alias_cbu)}
+              </div>
+              {proveedor.datos_bancarios && (
+                <p style={{ margin: '10px 0 0', fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{proveedor.datos_bancarios}</p>
+              )}
             </div>
           )}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-            {row('Contacto Admin', proveedor.contacto_admin)}
-            {row('Contacto Comercial', proveedor.contacto_comercial)}
-            {row('Reservas', proveedor.contacto_reservas)}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px' }}>
+            {row('Contacto pagos', contacto(proveedor.contacto_pagos, proveedor.mail_pagos))}
+            {row('Contacto reservas', contacto(proveedor.contacto_reservas, proveedor.mail_reservas))}
+            {row('Contacto admin', proveedor.contacto_admin)}
+            {row('Contacto comercial', proveedor.contacto_comercial)}
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0' }} />

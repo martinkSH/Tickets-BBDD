@@ -18,6 +18,8 @@ interface Props {
   totalCount: number
   responsableFilter?: string | null
   ticketsPorResponsable?: Record<string, number>
+  filtros: { q?: string; estado?: string; area?: string }
+  conteosEstado: Record<string, number>
 }
 
 const AREAS_FILTRO = ['Todas', 'Tarifas', 'Base de Datos', 'Otro'] as const
@@ -30,12 +32,13 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h]
 }
 
-export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount, responsableFilter, ticketsPorResponsable: ticketsPorResponsableProps }: Props) {
+export default function TicketTable({ tickets, responsables, perfil, title, soloMios, page, pageSize, totalCount, responsableFilter, ticketsPorResponsable: ticketsPorResponsableProps, filtros, conteosEstado }: Props) {
   const router = useRouter()
-  const [estadoFiltro, setEstadoFiltro] = useState<string>('Todos')
+  const estadoFiltro = filtros.estado || 'Todos'
   const responsableFiltro = responsableFilter ?? null
-  const [areaFiltro, setAreaFiltro] = useState<string>('Todas')
-  const [busqueda, setBusqueda] = useState('')
+  const areaFiltro = filtros.area || 'Todas'
+  const [busqueda, setBusqueda] = useState(filtros.q || '')
+  const busquedaTimer = useRef<NodeJS.Timeout>()
   const [selected, setSelected] = useState<Ticket | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [hovered, setHovered] = useState<{ ticket: Ticket; x: number; y: number } | null>(null)
@@ -45,11 +48,19 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   const totalPages = Math.ceil(totalCount / pageSize)
   const basePath = soloMios ? '/mis-tickets' : '/dashboard'
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {}
-    tickets.forEach(t => { c[t.estado] = (c[t.estado] || 0) + 1 })
-    return c
-  }, [tickets])
+  const counts = conteosEstado
+
+  // Los filtros viven en la URL y se resuelven en el servidor, así abarcan
+  // todas las hojas y no sólo la página cargada.
+  const buildUrl = (params: Record<string, string | null | undefined>) => {
+    const merged: Record<string, string | null | undefined> = {
+      q: filtros.q, estado: filtros.estado, area: filtros.area,
+      responsable: responsableFiltro, page: '0', ...params,
+    }
+    const sp = new URLSearchParams()
+    Object.entries(merged).forEach(([k, v]) => { if (v) sp.set(k, v) })
+    return `${basePath}?${sp.toString()}`
+  }
 
   const ticketsPorResponsable = useMemo(() => {
     if (ticketsPorResponsableProps) return ticketsPorResponsableProps
@@ -64,23 +75,13 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
     return c
   }, [tickets, ticketsPorResponsableProps])
 
-  const filtrados = useMemo(() => {
-    return tickets.filter(t => {
-      if (estadoFiltro !== 'Todos' && t.estado !== estadoFiltro) return false
-      if (areaFiltro !== 'Todas' && t.area_afectada !== areaFiltro) return false
-      if (busqueda) {
-        const q = busqueda.toLowerCase()
-        if (
-          !t.numero?.toLowerCase().includes(q) &&
-          !t.mail_solicitante?.toLowerCase().includes(q) &&
-          !t.proveedor?.toLowerCase().includes(q) &&
-          !t.descripcion?.toLowerCase().includes(q) &&
-          !t.responsable_nombre?.toLowerCase().includes(q)
-        ) return false
-      }
-      return true
-    })
-  }, [tickets, estadoFiltro, areaFiltro, busqueda])
+  const filtrados = tickets
+
+  const buscar = (valor: string) => {
+    setBusqueda(valor)
+    clearTimeout(busquedaTimer.current)
+    busquedaTimer.current = setTimeout(() => router.push(buildUrl({ q: valor.trim() || undefined })), 400)
+  }
 
   const afterUpdate = () => {
     setSelected(null)
@@ -88,7 +89,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
   }
 
   const goToPage = (p: number) => {
-    router.push(`${basePath}?page=${p}`)
+    router.push(buildUrl({ page: String(p) }))
   }
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -116,7 +117,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-sm text-gray-500">
-              {totalCount.toLocaleString()} tickets en total · mostrando {((page) * pageSize) + 1}–{Math.min((page + 1) * pageSize, totalCount)}
+              {totalCount.toLocaleString()} tickets{(filtros.q || filtros.estado || filtros.area || responsableFiltro) ? ' con estos filtros' : ' en total'}{totalCount > 0 && ` · mostrando ${page * pageSize + 1}–${Math.min((page + 1) * pageSize, totalCount)}`}
             </p>
             <AutoRefresh />
           </div>
@@ -129,7 +130,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           const cfg = ESTADO_CONFIG[e]
           const n = counts[e] || 0
           return (
-            <button key={e} onClick={() => setEstadoFiltro(estadoFiltro === e ? 'Todos' : e)}
+            <button key={e} onClick={() => router.push(buildUrl({ estado: estadoFiltro === e ? undefined : e }))}
               className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
                 estadoFiltro === e ? `${cfg.bg} ${cfg.color} border-current` : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
               )}>
@@ -149,7 +150,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
             const color = avatarColor(r.nombre)
             return (
               <div key={r.id}
-              onClick={() => router.push(`${basePath}?page=0${responsableFiltro === r.id ? '' : `&responsable=${r.id}`}`)}
+              onClick={() => router.push(buildUrl({ responsable: responsableFiltro === r.id ? undefined : r.id }))}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all"
               style={{
                 background: responsableFiltro === r.id ? '#1f2937' : 'white',
@@ -176,7 +177,7 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
           <span className="text-xs text-gray-500">Filtrando por responsable:</span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 text-white text-xs font-medium">
             {responsables.find(r => r.id === responsableFiltro)?.nombre}
-            <button onClick={() => router.push(`${basePath}?page=0`)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+            <button onClick={() => router.push(buildUrl({ responsable: undefined }))} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
           </span>
         </div>
       )}
@@ -185,14 +186,14 @@ export default function TicketTable({ tickets, responsables, perfil, title, solo
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar ticket, proveedor, mail…"
+          <input value={busqueda} onChange={e => buscar(e.target.value)}
+            placeholder="Buscar por nro de ticket, proveedor, mail…"
             className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 w-72"
           />
         </div>
         <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
           {AREAS_FILTRO.map(a => (
-            <button key={a} onClick={() => setAreaFiltro(a)}
+            <button key={a} onClick={() => router.push(buildUrl({ area: a === 'Todas' ? undefined : a }))}
               className={cx('px-3 py-2 text-xs font-medium transition-all border-r border-gray-200 last:border-r-0',
                 areaFiltro === a ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'
               )}>

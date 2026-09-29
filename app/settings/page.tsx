@@ -535,7 +535,7 @@ export default function SettingsPage() {
 
             {/* Estados fijos */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {['Recibido','Asignado','Pend. Operador ⏸','Pend. Ventas ⏸'].map(e => (
+              {['Recibido','Asignado','Pend. BBDD','Pend. Operador ⏸','Pend. Ventas ⏸'].map(e => (
                 <span key={e} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f3f4f6', borderRadius: 20, padding: '4px 12px', fontSize: 13, color: '#9ca3af' }}>
                   🔒 {e}
                 </span>

@@ -386,8 +386,11 @@ export async function mailComentarioResponsable(ticket: {
     ],
     comentario: ticket.comentario,
     comentarioLabel: `Respuesta de ${ticket.responsable_nombre}`,
-    buttons: [{ text: 'Ver y responder →', href: url }],
-    footerNote: 'Podés responder desde la página del ticket.',
+    buttons: [
+      { text: 'Ver y responder →', href: url },
+      { text: '✓ Ya está, cerrar ticket', href: `${url}?a=cerrar`, primary: false },
+    ],
+    footerNote: 'Podés responder o cerrar el ticket desde su página.',
   })
 
   await transporter.sendMail({

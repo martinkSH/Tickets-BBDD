@@ -15,6 +15,8 @@ interface Cliente {
   razon_social: string
   nombre_contacto?: string
   mail_telefono?: string
+  mail_cliente?: string
+  telefono?: string
   contacto_interno?: string
   sitio_web?: string
   logo_url?: string
@@ -251,6 +253,9 @@ function ClienteModal({ proveedor: c, responsables, saving, onClose, onSave, onC
             {c.nombre_madre && row('Cliente Madre', c.nombre_madre)}
             {row('Dirección', c.direccion)}
             {row('Nombre contacto', c.nombre_contacto)}
+            {row('Mail cliente', c.mail_cliente)}
+            {row('Teléfono', c.telefono)}
+            {/* Altas anteriores a separar mail y teléfono */}
             {row('Mail/Tel contacto', c.mail_telefono)}
             {row('Contacto interno', c.contacto_interno)}
             {row('Sitio web', c.sitio_web)}

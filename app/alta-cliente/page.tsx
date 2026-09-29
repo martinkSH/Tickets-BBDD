@@ -31,7 +31,7 @@ export default function AltaClientePage() {
   const [form, setForm] = useState({
     mail_contacto: '', tipo_cliente: '' as ''|'Madre'|'Consumidor Final',
     nombre_madre: '', nombre_fantasia: '', direccion: '',
-    razon_social: '', nombre_contacto: '', mail_telefono: '',
+    razon_social: '', nombre_contacto: '', mail_cliente: '', telefono: '',
     contacto_interno: '', sitio_web: '', categoria: '' as ''|'A'|'B'|'C'|'D',
   })
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
@@ -39,7 +39,11 @@ export default function AltaClientePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.mail_contacto || !form.tipo_cliente || !form.nombre_fantasia || !form.razon_social || !form.nombre_contacto || !form.categoria) {
+    const obligatorios = [
+      form.mail_contacto, form.tipo_cliente, form.nombre_fantasia, form.razon_social,
+      form.nombre_contacto, form.mail_cliente, form.telefono, form.direccion, form.sitio_web, form.categoria,
+    ]
+    if (obligatorios.some(v => !v.trim())) {
       setError('Por favor completá todos los campos obligatorios.'); return
     }
     if (form.tipo_cliente === 'Consumidor Final' && !form.nombre_madre) {
@@ -144,11 +148,11 @@ export default function AltaClientePage() {
               </Field>
             </div>
             <div className="md:col-span-2">
-              <Field label="Dirección" hint="Calle / Altura / Localidad / Ciudad / País / Código Postal">
+              <Field label="Dirección" req hint="Calle / Altura / Localidad / Ciudad / País / Código Postal">
                 <input value={form.direccion} onChange={set('direccion')} className={inputCls} placeholder="Dirección completa" />
               </Field>
             </div>
-            <Field label="Sitio Web">
+            <Field label="Página web" req>
               <input value={form.sitio_web} onChange={set('sitio_web')} className={inputCls} placeholder="https://www.empresa.com" />
             </Field>
             <Field label="Logo de la empresa" hint="Formato PNG">
@@ -167,11 +171,12 @@ export default function AltaClientePage() {
             <Field label="Nombre de contacto" req>
               <input value={form.nombre_contacto} onChange={set('nombre_contacto')} className={inputCls} placeholder="Nombre completo" />
             </Field>
-            <div className="md:col-span-2">
-              <Field label="Mail / Teléfono de contacto" req>
-                <input value={form.mail_telefono} onChange={set('mail_telefono')} className={inputCls} placeholder="Mail o teléfono del contacto" />
-              </Field>
-            </div>
+            <Field label="Mail del cliente" req>
+              <input type="email" value={form.mail_cliente} onChange={set('mail_cliente')} className={inputCls} placeholder="contacto@cliente.com" />
+            </Field>
+            <Field label="Teléfono" req>
+              <input value={form.telefono} onChange={set('telefono')} className={inputCls} placeholder="+54 9 11 1234-5678" />
+            </Field>
             <div className="md:col-span-2">
               <Field label="Contacto interno Say Hueque" hint="Mail o nombre de la persona dentro de la empresa con quien se tuvo contacto">
                 <input value={form.contacto_interno} onChange={set('contacto_interno')} className={inputCls} placeholder="Nombre o mail del contacto interno" />

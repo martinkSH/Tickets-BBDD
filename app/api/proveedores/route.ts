@@ -25,21 +25,26 @@ async function enviarMailNuevoProveedor(p: any, mails: string[]) {
     </div>
     <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:0;">
       <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
-        ${fila('Razón Social', p.razon_social)}
         ${fila('Nombre de fantasía', p.nombre_fantasia)}
+        ${fila('Razón Social', p.razon_social)}
         ${fila('Mail contacto', p.mail_contacto)}
         ${fila('Teléfono', p.telefono)}
+        ${fila('Dirección física', p.domicilio)}
+        ${fila('Dirección de facturación', p.domicilio_facturacion)}
         ${fila('Ciudad', p.ciudad)}
         ${fila('País', p.pais)}
-        ${fila('CUIT', p.cuit)}
+        ${fila('CUIT / Tax ID', p.cuit)}
         ${fila('Condición impositiva', p.condicion_impositiva)}
+        ${fila('Banco', p.banco)}
+        ${fila('CBU', p.cbu)}
+        ${fila('Alias', p.alias_cbu)}
         ${fila('Forma de pago', p.forma_pago)}
         ${fila('Moneda', p.moneda_pago)}
         ${fila('Término de pago', p.termino_pago)}
-        ${fila('Mail pagos', p.mail_pagos)}
+        ${fila('Contacto Pagos', [p.contacto_pagos, p.mail_pagos].filter(Boolean).join(' · '))}
+        ${fila('Contacto Reservas', [p.contacto_reservas, p.mail_reservas].filter(Boolean).join(' · '))}
         ${fila('Contacto Admin', p.contacto_admin)}
         ${fila('Contacto Comercial', p.contacto_comercial)}
-        ${fila('Contacto Reservas', p.contacto_reservas)}
         ${fila('Tel. emergencias', p.telefono_emergencias)}
       </table>
       ${p.datos_bancarios ? `<div style="padding:12px 14px;background:#f9fafb;border-top:1px solid #f0f0f0"><p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase">Datos bancarios</p><p style="margin:0;font-size:13px;color:#374151">${esc(p.datos_bancarios)}</p></div>` : ''}
@@ -50,7 +55,7 @@ async function enviarMailNuevoProveedor(p: any, mails: string[]) {
   await transporter.sendMail({
     from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
     to: mails.join(','),
-    subject: `[Alta Proveedor] ${p.razon_social} — ${p.pais || ''}`.trim(),
+    subject: `[Alta Proveedor] ${p.nombre_fantasia || p.razon_social} — ${p.pais || ''}`.trim(),
     html,
   })
 }
@@ -84,6 +89,7 @@ export async function POST(req: NextRequest) {
       razon_social:         body.razon_social,
       nombre_fantasia:      body.nombre_fantasia,
       domicilio:            body.domicilio,
+      domicilio_facturacion: body.domicilio_facturacion,
       ciudad:               body.ciudad,
       pais:                 body.pais,
       telefono:             body.telefono,
@@ -93,7 +99,12 @@ export async function POST(req: NextRequest) {
       moneda_pago:          body.moneda_pago,
       termino_pago:         body.termino_pago,
       datos_bancarios:      body.datos_bancarios,
+      cbu:                  body.cbu,
+      alias_cbu:            body.alias_cbu,
+      banco:                body.banco,
+      contacto_pagos:       body.contacto_pagos,
       mail_pagos:           body.mail_pagos,
+      mail_reservas:        body.mail_reservas,
       contacto_admin:       body.contacto_admin,
       contacto_comercial:   body.contacto_comercial,
       contacto_reservas:    body.contacto_reservas,
@@ -161,7 +172,7 @@ async function autoAssignProveedor(supabase: any, proveedorId: string) {
     await transporter.sendMail({
       from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
       to: mejor.mail,
-      subject: `[Alta asignada] ${prov.razon_social}`,
+      subject: `[Alta asignada] ${prov.nombre_fantasia || prov.razon_social}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:13px;max-width:500px;">
         <div style="background:#1e3a5f;padding:16px 20px;border-radius:8px 8px 0 0;">
           <p style="margin:0;color:#93c5fd;font-size:11px;text-transform:uppercase">Say Hueque · Atlas Archive</p>
@@ -169,6 +180,7 @@ async function autoAssignProveedor(supabase: any, proveedorId: string) {
         </div>
         <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:16px 20px;">
           <p>Hola <strong>${esc(mejor.nombre)}</strong>, se te asignó el alta del siguiente proveedor:</p>
+          <p><strong>Proveedor:</strong> ${esc(prov.nombre_fantasia || '')}</p>
           <p><strong>Razón Social:</strong> ${esc(prov.razon_social)}</p>
           <p><strong>País:</strong> ${esc(prov.pais || '—')}</p>
           <p><strong>Mail:</strong> ${esc(prov.mail_contacto)}</p>

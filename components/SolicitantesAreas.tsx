@@ -78,7 +78,7 @@ export async function GET() {
     if (isBusinessTime(ts)) {
       totalHabil++
       if (estado === 'Recibido') pendientes++
-      if (estado === 'Asignado' || estado === 'Pendiente Operador' || estado === 'Pendiente Ventas') asignados++
+      if (estado === 'Asignado' || estado === 'Pendiente BBDD' || estado === 'Pendiente Operador' || estado === 'Pendiente Ventas') asignados++
       if (estado === 'Resuelto') resueltos++
       if (horas !== null && horas >= 0) { sumaHorasGlobal += horas; cantHorasGlobal++ }
 
@@ -112,7 +112,7 @@ export async function GET() {
 
   const totalActual = tickets.length
   const recibidosAhora = tickets.filter(t => t.estado === 'Recibido').length
-  const asignadosAhora = tickets.filter(t => ['Asignado','Pendiente Operador','Pendiente Ventas'].includes(t.estado)).length
+  const asignadosAhora = tickets.filter(t => ['Asignado','Pendiente BBDD','Pendiente Operador','Pendiente Ventas'].includes(t.estado)).length
   const resueltosAhora = tickets.filter(t => t.estado === 'Resuelto').length
 
   return NextResponse.json({

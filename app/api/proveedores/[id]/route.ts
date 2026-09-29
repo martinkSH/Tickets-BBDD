@@ -23,13 +23,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       await transporter.sendMail({
         from: `"Alta Proveedores" <${process.env.GMAIL_USER}>`,
         to: responsable_mail,
-        subject: `[Alta asignada] ${data.razon_social}`,
+        subject: `[Alta asignada] ${data.nombre_fantasia || data.razon_social}`,
         html: `<div style="font-family:Arial,sans-serif;font-size:13px;max-width:500px;">
           <div style="background:#1e3a5f;padding:16px 20px;border-radius:8px 8px 0 0;">
             <h2 style="margin:0;color:white;font-size:16px;">📋 Alta de proveedor asignada</h2>
           </div>
           <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:16px 20px;">
             <p>Hola <strong>${esc(responsable_nombre||'')}</strong>, se te asignó el alta del siguiente proveedor:</p>
+            <p><strong>Proveedor:</strong> ${esc(data.nombre_fantasia || '')}</p>
             <p><strong>Razón Social:</strong> ${esc(data.razon_social)}</p>
             <p><strong>País:</strong> ${esc(data.pais||'—')}</p>
             <p><strong>Mail:</strong> ${esc(data.mail_contacto)}</p>

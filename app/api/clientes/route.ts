@@ -21,7 +21,8 @@ async function enviarMailNuevoCliente(c: any, mails: string[]) {
         ${c.nombre_madre ? fila('Cliente Madre', c.nombre_madre) : ''}
         ${fila('Mail contacto', c.mail_contacto)}
         ${fila('Nombre contacto', c.nombre_contacto)}
-        ${fila('Mail/Tel contacto', c.mail_telefono)}
+        ${fila('Mail cliente', c.mail_cliente)}
+        ${fila('Teléfono', c.telefono)}
         ${fila('Contacto interno', c.contacto_interno)}
         ${fila('Dirección', c.direccion)}
         ${fila('Sitio web', c.sitio_web)}
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
     mail_contacto: body.mail_contacto, tipo_cliente: body.tipo_cliente,
     nombre_madre: body.nombre_madre, nombre_fantasia: body.nombre_fantasia,
     direccion: body.direccion, razon_social: body.razon_social,
-    nombre_contacto: body.nombre_contacto, mail_telefono: body.mail_telefono,
+    nombre_contacto: body.nombre_contacto, mail_cliente: body.mail_cliente, telefono: body.telefono,
     contacto_interno: body.contacto_interno, sitio_web: body.sitio_web,
     logo_url: body.logo_url, categoria: body.categoria,
   }).select().single()

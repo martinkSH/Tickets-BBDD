@@ -55,14 +55,14 @@ export async function POST(req: NextRequest) {
   const ticket = await porToken(supabase, token || null)
   if (!ticket) return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
 
-  // ── Cerrar: sólo tiene sentido mientras se está esperando la conformidad ──
+  // ── Cerrar: el solicitante puede cerrar en cualquier momento ─────────────
+  // Si BBDD le contestó sólo por la conversación, no hace falta que además
+  // "resuelva" el ticket para que el solicitante pueda darlo por terminado.
+  // Si todavía no estaba resuelto, el trigger marca fecha_resolucion al pasar
+  // a 'Resuelto'.
   if (accion === 'cerrar') {
     if (ticket.estado === 'Resuelto') {
       return NextResponse.json({ error: 'Este ticket ya está cerrado.' }, { status: 409 })
-    }
-    if (ticket.estado !== 'Pendiente Conformidad') {
-      return NextResponse.json(
-        { error: 'Este ticket todavía está en curso, no se puede cerrar.' }, { status: 409 })
     }
     const { error } = await supabase.from('tickets').update({
       estado: 'Resuelto',
@@ -94,15 +94,21 @@ export async function POST(req: NextRequest) {
     })
     if (errCom) return NextResponse.json({ error: errCom.message }, { status: 500 })
 
-    // Si estaba esperando conformidad, vuelve a estar abierto: se limpia
-    // fecha_resolucion para que deje de contar como resuelto y frene el reloj.
+    // La respuesta del solicitante deja el ticket en 'Pendiente BBDD' para que
+    // se distinga en el listado (antes volvía a 'Asignado' y se perdía). Sin
+    // responsable todavía no hay a quién devolvérselo: sigue en 'Recibido'.
+    // Si estaba esperando conformidad, además se limpia fecha_resolucion para
+    // que deje de contar como resuelto y frene el reloj.
+    const nuevoEstado = ticket.responsable_id ? 'Pendiente BBDD' : 'Recibido'
+    const updates: Record<string, unknown> = {}
+    if (ticket.estado !== nuevoEstado) updates.estado = nuevoEstado
     if (ticket.estado === 'Pendiente Conformidad') {
-      const { error } = await supabase.from('tickets').update({
-        estado: ticket.responsable_id ? 'Asignado' : 'Recibido',
-        fecha_resolucion: null,
-        conformidad_pedida_at: null,
-        recordatorio_enviado_at: null,
-      }).eq('id', ticket.id)
+      updates.fecha_resolucion = null
+      updates.conformidad_pedida_at = null
+      updates.recordatorio_enviado_at = null
+    }
+    if (Object.keys(updates).length) {
+      const { error } = await supabase.from('tickets').update(updates).eq('id', ticket.id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     }
 

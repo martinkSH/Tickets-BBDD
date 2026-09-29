@@ -42,6 +42,8 @@ export default function TicketPublicoPage({ params }: { params: { token: string 
   }, [])
 
   const accion = async (accion: 'cerrar' | 'comentar') => {
+    if (accion === 'cerrar' && ticket?.estado !== 'Pendiente Conformidad'
+        && !confirm('¿Cerrar el ticket? El equipo deja de trabajar en él.')) return
     setEnviando(true)
     setAviso('')
     try {
@@ -204,12 +206,19 @@ export default function TicketPublicoPage({ params }: { params: { token: string 
         <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px' }}>
           <p style={{ margin: '0 0 12px', fontSize: 13.5, color: '#374151' }}>
             Tu ticket está en curso. Te vamos a avisar por mail cuando tengamos una respuesta.
+            Si ya lo tenés resuelto, podés cerrarlo.
           </p>
           {!mostrarComentario ? (
-            <button onClick={() => setMostrarComentario(true)}
-              style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', padding: '10px 20px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
-              💬 Agregar un comentario
-            </button>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button onClick={() => setMostrarComentario(true)}
+                style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', padding: '10px 20px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+                💬 Agregar un comentario
+              </button>
+              <button onClick={() => accion('cerrar')} disabled={enviando}
+                style={{ background: '#16a34a', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: enviando ? 'wait' : 'pointer' }}>
+                {enviando ? 'Cerrando…' : '✓ Cerrar ticket'}
+              </button>
+            </div>
           ) : (
             <>
               <textarea value={texto} onChange={e => setTexto(e.target.value)} autoFocus
@@ -261,6 +270,7 @@ function Badge({ estado }: { estado: string }) {
   const cfg: Record<string, { txt: string; bg: string; color: string }> = {
     'Recibido': { txt: 'Recibido', bg: '#f1f5f9', color: '#475569' },
     'Asignado': { txt: 'En curso', bg: '#ffedd5', color: '#c2410c' },
+    'Pendiente BBDD': { txt: 'En curso', bg: '#ffedd5', color: '#c2410c' },
     'Pendiente Operador': { txt: 'En curso', bg: '#ffedd5', color: '#c2410c' },
     'Pendiente Ventas': { txt: 'En curso', bg: '#f3e8ff', color: '#7e22ce' },
     'Pendiente Conformidad': { txt: 'Esperando tu confirmación', bg: '#cffafe', color: '#0e7490' },

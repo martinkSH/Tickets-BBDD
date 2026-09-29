@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
+import { filtrarTickets, contarPorEstado } from '@/lib/tickets-filtros'
 
 export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 100
 
-export default async function DashboardPage({ searchParams }: { searchParams: { page?: string; responsable?: string } }) {
+export default async function DashboardPage({ searchParams }: { searchParams: { page?: string; responsable?: string; q?: string; estado?: string; area?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -20,17 +21,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   const from = page * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
   const responsableFilter = searchParams.responsable || null
-
-  let query = supabase
-    .from('tickets_con_responsable')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-
-  if (responsableFilter) {
-    query = query.eq('responsable_id', responsableFilter)
+  const filtros = {
+    q: searchParams.q, estado: searchParams.estado, area: searchParams.area,
+    responsable: responsableFilter,
   }
 
-  const { data: tickets, count } = await query.range(from, to)
+  const query = filtrarTickets(
+    supabase.from('tickets_con_responsable').select('*', { count: 'exact' }).order('created_at', { ascending: false }),
+    filtros,
+  )
+
+  const [{ data: tickets, count }, conteosEstado] = await Promise.all([
+    query.range(from, to),
+    contarPorEstado(supabase, filtros),
+  ])
 
   const { data: responsables } = await supabase
     .from('perfiles')
@@ -65,6 +69,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
         pageSize={PAGE_SIZE}
         totalCount={count || 0}
         responsableFilter={responsableFilter}
+        filtros={{ q: searchParams.q, estado: searchParams.estado, area: searchParams.area }}
+        conteosEstado={conteosEstado}
         ticketsPorResponsable={ticketsPorResponsable}
       />
     </AppShell>

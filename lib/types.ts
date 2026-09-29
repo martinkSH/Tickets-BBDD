@@ -2,6 +2,8 @@ export type Rol = 'admin' | 'responsable'
 export type Estado =
   | 'Recibido'
   | 'Asignado'
+  // El solicitante respondió en la conversación: la pelota vuelve a BBDD
+  | 'Pendiente BBDD'
   | 'Pendiente Operador'
   | 'Pendiente Ventas'
   | 'Pendiente Conformidad'
@@ -73,7 +75,7 @@ export const HORAS_RECORDATORIO = 36
 export const ESTADOS_PAUSA: Estado[] = ['Pendiente Operador', 'Pendiente Ventas']
 
 export const ESTADOS_ORDEN: Estado[] = [
-  'Recibido', 'Asignado', 'Pendiente Operador', 'Pendiente Ventas',
+  'Recibido', 'Asignado', 'Pendiente BBDD', 'Pendiente Operador', 'Pendiente Ventas',
   'Pendiente Conformidad', 'Resuelto',
 ]
 
@@ -86,6 +88,7 @@ export const ESTADO_CONFIG: Record<Estado, {
 }> = {
   'Recibido':          { label: 'Recibido',       color: 'text-slate-600',  bg: 'bg-slate-100',  border: 'border-slate-200',  dot: 'bg-slate-400',  pausa: false },
   'Asignado':          { label: 'Asignado',        color: 'text-orange-700', bg: 'bg-orange-100', border: 'border-orange-300', dot: 'bg-orange-500', pausa: false },
+  'Pendiente BBDD':    { label: 'Pend. BBDD',      color: 'text-red-700',    bg: 'bg-red-50',      border: 'border-red-300',    dot: 'bg-red-500',    pausa: false },
   'Pendiente Operador':{ label: 'Pend. Operador',  color: 'text-orange-700', bg: 'bg-orange-50',  border: 'border-orange-200', dot: 'bg-orange-400', pausa: true  },
   'Pendiente Ventas':  { label: 'Pend. Ventas',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', dot: 'bg-purple-400', pausa: true  },
   'Pendiente Conformidad': { label: 'Esperando al solicitante', color: 'text-cyan-800', bg: 'bg-cyan-50', border: 'border-cyan-300', dot: 'bg-cyan-500', pausa: true },
