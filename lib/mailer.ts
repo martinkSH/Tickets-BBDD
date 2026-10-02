@@ -400,3 +400,28 @@ export async function mailComentarioResponsable(ticket: {
     html,
   })
 }
+
+// ─── 8. Recuperar contraseña → usuario ───────────────────────────────────────
+// El link solo abre la página; el token se canjea recién al guardar la nueva
+// contraseña, así el prefetch de los clientes de mail no lo consume.
+export async function mailRecuperarPassword(mail: string, tokenHash: string) {
+  const url = `${APP_URL}/reset-password?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`
+
+  const html = template({
+    headerBg: '#1a1d2e',
+    headerTag: '#c9a96e',
+    headerTitle: 'Restablecer contraseña',
+    headerSub: mail,
+    rows: [{ label: 'Cuenta', value: mail }],
+    aviso: 'Recibimos un pedido para restablecer tu contraseña. El link vence en 1 hora. Si no fuiste vos, ignorá este mail.',
+    buttons: [{ text: 'Elegir nueva contraseña →', href: url }],
+    footerNote: 'Atlas Archive — mensaje automático',
+  })
+
+  await transporter.sendMail({
+    from: `"Atlas Archive" <${process.env.GMAIL_USER}>`,
+    to: mail,
+    subject: 'Restablecer tu contraseña · Atlas Archive',
+    html,
+  })
+}

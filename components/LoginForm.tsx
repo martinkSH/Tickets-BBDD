@@ -8,6 +8,8 @@ export default function LoginForm() {
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [modo, setModo] = useState<'login' | 'olvide'>('login')
+  const [enviado, setEnviado] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,6 +24,30 @@ export default function LoginForm() {
     }
     await new Promise(r => setTimeout(r, 500))
     window.location.href = '/dashboard'
+  }
+
+  const handleOlvide = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mail }),
+    }).catch(() => null)
+    setLoading(false)
+    if (!res?.ok) {
+      const data = await res?.json().catch(() => null)
+      setError(data?.error || 'No se pudo enviar el mail, probá de nuevo')
+      return
+    }
+    setEnviado(true)
+  }
+
+  const cambiarModo = (m: 'login' | 'olvide') => {
+    setModo(m)
+    setError('')
+    setEnviado(false)
   }
 
   return (
@@ -66,10 +92,27 @@ export default function LoginForm() {
       {/* Panel derecho — formulario */}
       <div style={{ width: 480, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 56px' }}>
         <div style={{ width: '100%', maxWidth: 360 }}>
-          <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 700, color: 'white' }}>Bienvenido</h1>
-          <p style={{ margin: '0 0 36px', fontSize: 14, color: '#555' }}>Ingresá para acceder al sistema</p>
+          <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 700, color: 'white' }}>
+            {modo === 'login' ? 'Bienvenido' : 'Recuperar contraseña'}
+          </h1>
+          <p style={{ margin: '0 0 36px', fontSize: 14, color: '#555' }}>
+            {modo === 'login' ? 'Ingresá para acceder al sistema' : 'Te mandamos un link a tu mail para elegir una nueva'}
+          </p>
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {modo === 'olvide' && enviado ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#c9a96e', background: 'rgba(201,169,110,0.08)', padding: '12px 14px', borderRadius: 6, border: '1px solid rgba(201,169,110,0.25)', lineHeight: 1.5 }}>
+                Si <strong>{mail}</strong> tiene una cuenta, te llegó un mail con el link para restablecer la contraseña. Revisá también spam. El link vence en 1 hora.
+              </p>
+              <button type="button" onClick={() => cambiarModo('login')} style={{
+                background: 'none', border: 'none', color: '#888', fontSize: 13,
+                cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              }}>
+                ← Volver a ingresar
+              </button>
+            </div>
+          ) : (
+          <form onSubmit={modo === 'login' ? handleLogin : handleOlvide} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Email</label>
               <input
@@ -84,6 +127,7 @@ export default function LoginForm() {
                 }}
               />
             </div>
+            {modo === 'login' && (
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Contraseña</label>
               <input
@@ -96,7 +140,15 @@ export default function LoginForm() {
                   fontFamily: 'inherit', boxSizing: 'border-box',
                 }}
               />
+              <button type="button" onClick={() => cambiarModo('olvide')} style={{
+                display: 'block', marginTop: 8, marginLeft: 'auto',
+                background: 'none', border: 'none', color: '#888', fontSize: 12,
+                cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              }}>
+                ¿Olvidaste tu contraseña?
+              </button>
             </div>
+            )}
 
             {error && (
               <p style={{ margin: 0, fontSize: 13, color: '#e8573f', background: 'rgba(232,87,63,0.1)', padding: '8px 12px', borderRadius: 6, border: '1px solid rgba(232,87,63,0.2)' }}>
@@ -112,9 +164,21 @@ export default function LoginForm() {
               letterSpacing: '0.03em', transition: 'background 0.15s',
               fontFamily: 'inherit', marginTop: 4,
             }}>
-              {loading ? 'Ingresando…' : 'Ingresar →'}
+              {modo === 'login'
+                ? (loading ? 'Ingresando…' : 'Ingresar →')
+                : (loading ? 'Enviando…' : 'Enviar link →')}
             </button>
+
+            {modo === 'olvide' && (
+              <button type="button" onClick={() => cambiarModo('login')} style={{
+                background: 'none', border: 'none', color: '#888', fontSize: 13,
+                cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              }}>
+                ← Volver a ingresar
+              </button>
+            )}
           </form>
+          )}
 
           <p style={{ margin: '24px 0 0', fontSize: 12, color: '#333', textAlign: 'center' }}>
             Acceso restringido · Solo personal autorizado
